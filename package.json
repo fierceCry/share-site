@@ -1,0 +1,21 @@
+{
+  "name": "node-3",
+  "version": "1.0.0",
+  "main": "index.js",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "start": "node app.js",
+    "dev": "nodemon src/app.js"
+  },
+  "dependencies": {
+    "@prisma/client": "^5.14.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "nodemon": "^3.1.2",
+    "prisma": "^5.14.0"
+  },
+  "devDependencies": {
+    "prettier": "3.2.5"
+  }
+}
