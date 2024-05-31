@@ -3,7 +3,6 @@ import { apiRouter } from '../src/routers/index.js'
 import { globalErrorHandler } from '../src/middlwarmies/error-handler.middleware.js';
 import { ENV_KEY } from './constants/env.constant.js';
 const app = express();
-const port = 3000
 
 app.use(express.json())
 app.use(apiRouter)
