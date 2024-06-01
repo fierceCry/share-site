@@ -11,9 +11,11 @@
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
+    "brcypt": "^1.0.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "joi": "^17.13.1",
+    "jsonwebtoken": "^9.0.2",
     "nodemailer": "^6.9.13",
     "prisma": "^5.14.0",
     "winston": "^3.13.0"

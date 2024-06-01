@@ -6,6 +6,7 @@ import { emalilCodeSchema } from '../middlwarmies/validation/emailCode.validatio
 
 const authRouter = express();
 
+/** 이메일 인증 가입 메일 전송 기능 **/
 authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
   try {
     const { email } = req.body;
@@ -39,7 +40,7 @@ authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
     }
 
     const transporter = nodeMailer.createTransport({
-      service: ENV_KEY.EMAIL,
+      service: ENV_KEY.EMAIL_SERVICE,
       auth: { user: ENV_KEY.EMAIL_ADDRESS, pass: ENV_KEY.EMAIL_PASSWORD },
     });
 
@@ -80,7 +81,7 @@ authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
   }
 });
 
-// api명세서 인증번호 확인 url수정
+/** 이메일 가입 인증 확인 기능 **/
 authRouter.get('/verify-email/:email/:emailCode', async(req, res, next) => {
   try {
     const { email, emailCode } = req.params;
@@ -103,6 +104,7 @@ authRouter.get('/verify-email/:email/:emailCode', async(req, res, next) => {
   }
 })
 
+/** 인증코드 랜덤 발급 **/
 const generateRandomCode = () =>{
   let code = '';
   for (let i = 0; i < 8; i++) {
