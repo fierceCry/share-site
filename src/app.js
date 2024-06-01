@@ -2,8 +2,11 @@ import express from 'express';
 import { apiRouter } from '../src/routers/index.js'
 import { globalErrorHandler } from '../src/middlwarmies/error-handler.middleware.js';
 import { ENV_KEY } from './constants/env.constant.js';
+import logMiddleware from './middlwarmies/log.middleware.js';
+
 const app = express();
 
+app.use(logMiddleware)
 app.use(express.json())
 app.use(apiRouter)
 app.use(globalErrorHandler);
