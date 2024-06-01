@@ -13,9 +13,10 @@ authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
     const userData = await prisma.emailAuthCode.findFirst({
       where: { email: email }
     });
-
+ 
     const emailCode = generateRandomCode();
-    const expirationAt = new Date(Date.now() + 5 * 60 * 1000);
+    const expirationAt = new Date()
+    expirationAt.setMinutes(expirationAt.getMinutes()+ 5);
     if (userData) {
       await prisma.emailAuthCode.update({
         where: { 
@@ -78,6 +79,29 @@ authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
     next(error);
   }
 });
+
+// api명세서 인증번호 확인 url수정
+authRouter.get('/verify-email/:email/:emailCode', async(req, res, next) => {
+  try {
+    const { email, emailCode } = req.params;
+
+    const data = await prisma.emailAuthCode.findFirst({
+      where: { email }
+    });
+
+    if (!data || data.emailCode !== emailCode) {
+      return res.status(400).json({ message: '잘못된 이메일 또는 인증번호입니다.' });
+    }
+
+    if (data.expirationAt < new Date()) {
+      return res.status(400).json({ message: '인증번호가 만료되었습니다.' });
+    }
+
+    return res.status(200).json({ message: '인증이 성공되었습니다.' });
+  } catch (error) {
+    next(error)
+  }
+})
 
 const generateRandomCode = () =>{
   let code = '';
