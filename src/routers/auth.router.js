@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import nodeMailer from 'nodemailer';
-import passport from '../passport.Strategy/naver.Strategy.js';
+import { passport } from '../passport.Strategy/naver.Strategy.js';
 import jwt from 'jsonwebtoken';
 import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
