@@ -1,4 +1,4 @@
-import Joi from 'Joi';
+import Joi from 'joi';
 
 /** 댓글 기능 joi **/
 export const commentSchema = async (req, res, next) => {

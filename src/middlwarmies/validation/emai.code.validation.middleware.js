@@ -1,4 +1,4 @@
-import Joi from 'Joi';
+import Joi from 'joi';
 
 /** 이메일 가입 인증 기능 joi **/
 export const emalilCodeSchema = async (req, res, next) => {
