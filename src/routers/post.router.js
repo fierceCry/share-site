@@ -1,12 +1,14 @@
 import express from 'express';
 import { prisma } from '../utils/prisma.utils.js';
 import { commentSchema } from '../middlwarmies/validation/comment.validation.middleware.js';
+import { requireAccessToken } from '../middlwarmies/require-access-token.middleware.js';
 
 const postsRouter = express();
 
 /** 게시글 좋아요 기능 **/
 postsRouter.patch(
   '/likes/:postId',
+  requireAccessToken,
   async (req, res, next) => {
     try {
       const { postId } = req.params;
@@ -56,6 +58,7 @@ postsRouter.patch(
 /** 댓글 좋아요 기능 **/
 postsRouter.patch(
   '/likes/:postId/:commentId',
+  requireAccessToken,
   async (req, res, next) => {
     try {
       const { postId, commentId } = req.params;
@@ -115,7 +118,7 @@ postsRouter.patch(
 );
 
 /**  댓글 생성 기능 **/
-postsRouter.post('/comment/:postId', commentSchema, async(req, res, next)=>{
+postsRouter.post('/comment/:postId', requireAccessToken, commentSchema, async(req, res, next)=>{
   try{
   const { postId } = req.params;
   const { userId } = req.user;
@@ -145,7 +148,7 @@ postsRouter.post('/comment/:postId', commentSchema, async(req, res, next)=>{
 })
 
  /** 댓글 조회 기능 **/
-postsRouter.get('/comments/:postId', async (req, res, next) => {
+postsRouter.get('/comments/:postId', requireAccessToken, async (req, res, next) => {
   try {
     const { postId } = req.params;
     const postData = await prisma.post.findMany({
@@ -186,7 +189,7 @@ postsRouter.get('/comments/:postId', async (req, res, next) => {
   }
 });
 
-postsRouter.patch('/comments/:postId/:commentId', commentSchema, async(req, res, next)=>{
+postsRouter.patch('/comments/:postId/:commentId', requireAccessToken, commentSchema, async(req, res, next)=>{
   try {
     const { postId, commentId } = req.params;
     const { userId } = req.user;
@@ -223,7 +226,7 @@ postsRouter.patch('/comments/:postId/:commentId', commentSchema, async(req, res,
   }
 });
 
-postsRouter.delete('/comments/:postId/:commentId', async(req, res, next)=>{
+postsRouter.delete('/comments/:postId/:commentId', requireAccessToken, async(req, res, next)=>{
   try{
   const { postId, commentId } = req.params;
   const { userId } = req.user;

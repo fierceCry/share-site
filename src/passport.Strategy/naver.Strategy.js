@@ -29,8 +29,8 @@ passport.use(
           });
         }
         console.log(user)
-        const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
-          expiresIn: '12h',
+        const token = jwt.sign({ userId: user.id }, ENV_KEY.ACCESS_TOKEN_SECRET, {
+          expiresIn: ENV_KEY.ACCESS_TOKEN_EXPIRES_IN,
         });
 
         const data = {

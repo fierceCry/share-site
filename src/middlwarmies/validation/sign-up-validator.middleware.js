@@ -1,6 +1,6 @@
 import Joi from 'joi';
-import { MESSAGES } from '../constants/message.constant.js';
-import { authConstant } from '../constants/auth.constant.js';
+import { MESSAGES } from '../../constants/message.constant.js';
+import { authConstant } from '../../constants/auth.constant.js';
 const schema = Joi.object({
     email: Joi.string().email().required().messages({
         'any.required': MESSAGES.AUTH.COMMON.EMAIL.REQUIRED,
@@ -30,7 +30,6 @@ const schema = Joi.object({
 
 export const signupValidator = async (req, res, next) => {
     try {
-        console.log(req.body)
         await schema.validateAsync(req.body);
         next();
     } catch (error) {

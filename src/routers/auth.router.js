@@ -2,13 +2,15 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import nodeMailer from 'nodemailer';
 import passport from '../passport.Strategy/naver.Strategy.js';
+import jwt from 'jsonwebtoken';
 import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
 import { emalilCodeSchema } from '../middlwarmies/validation/emai.code.validation.middleware.js';
 import { authConstant } from '../constants/auth.constant.js';
-import { signupValidator } from '../middlwarmies/sign-up-valildator.middleware.js';
 import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { MESSAGES } from '../constants/message.constant.js';
+import { signupValidator } from '../middlwarmies/validation/sign-up-validator.middleware.js';
+import { signinValidator } from '../middlwarmies/validation/sign-in-validator.middleware.js';
 
 const authRouter = express();
 
@@ -67,6 +69,61 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
     next(err);
   }
 });
+
+authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
+  try {
+      const { email, password } = req.body;
+      // 해당 사용자가 없을 시
+      const user = await prisma.user.findUnique({ where: { email } });
+      if (!user) return res.status(HTTP_STATUS.UNAUTHORIZED).message(MESSAGES.AUTH.COMMON.EMAIL.NOTFOUND);
+      // 비밀번호 확인
+      const userPassword = bcrypt.compareSync(password, user.password);
+      if (!userPassword) return res.status(HTTP_STATUS.UNAUTHORIZED).message(MESSAGES.AUTH.COMMON.PASSWORD.NOTMATCHED);
+      // jwt 생성
+      const payload = { id: user.userId };
+      const accessToken = await generateAuthTokens(payload);
+
+      return res.status(HTTP_STATUS.OK).json({
+          status: HTTP_STATUS.OK,
+          message: MESSAGES.AUTH.SIGN_IN.SUCCEED,
+          data: { accessToken }
+      });
+      next();
+  } catch (err) {
+      next(err);
+  }
+});
+
+//토큰 생성
+const generateAuthTokens = async (payload) => {
+  const userId = payload.id;
+
+  const accessToken = jwt.sign(payload, ENV_KEY.ACCESS_TOKEN_SECRET, {
+      expiresIn: '12h',
+  });
+
+  const refreshToken = jwt.sign(payload, ENV_KEY.REFRESH_TOKEN_SECRET, {
+      expiresIn: '7d',
+  });
+
+  const hashedRefreshToken = bcrypt.hashSync(refreshToken, authConstant.HASH_SALT_ROUNDS);
+
+  // RefreshToken을 갱신 ( 없을경우 생성 )
+  await prisma.refreshToken.upsert({
+      where: {
+          userId,
+      },
+      update: {
+          refreshToken: hashedRefreshToken,
+      },
+      create: {
+          userId,
+          refreshToken: hashedRefreshToken,
+      },
+  });
+
+  return { accessToken, refreshToken };
+};
 
 /** 이메일 인증 가입 메일 전송 기능 **/
 authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
