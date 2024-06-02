@@ -41,16 +41,16 @@ router.patch(
         title: true,
         content: true,
         imageUrl: true,
-        regionName: true, // users 테이블의 createdAt 필드 선택
-        createdAt: true, // users 테이블의 createdAt 필드 선택
-        updatedAt: true, // users 테이블의 updatedAt 필드 선택
+        regionName: true,
+        createdAt: true,
+        updatedAt: true,
       },
     });
 
     return res.status(200).json({
       status: 200,
       message: '수정완료 되었습니다.',
-      data: updatedResume,
+      data: updatedPost,
     });
   }
 );
