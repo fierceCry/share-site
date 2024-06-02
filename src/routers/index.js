@@ -1,5 +1,6 @@
 import express from 'express';
 import { authRouter } from './auth.router.js';
+//import { postsRouter } from './posts.router.js';
 import { postsRouter } from './post.router.js';
 
 const apiRouter = express.Router();
