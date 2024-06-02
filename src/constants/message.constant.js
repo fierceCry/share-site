@@ -12,7 +12,7 @@ export const MESSAGES = {
             PASSWORD: {
                 REQUIRED: "비밀번호를 입력해주세요",
                 MIN_LENGTH: `비밀번호는 ${authConstant.MIN_PASSWORD_LENGTH}자리 이상이어야 합니다.`,
-                NOTFOUND: "조회되지 않는 비밀번호입니다."
+                NOTMATCHED: "일치하지 않는 비밀번호입니다."
             },
             PASSWORD_CONFIRM: {
                 REQUIRED: "비밀번호 확인을 입력해주세요",
@@ -24,6 +24,14 @@ export const MESSAGES = {
             },
             EMAILVERIFIED: {
                 REQUIRED: "이메일 인증을 확인해주세요",
+            },
+            JWT: {
+                NO_TOKEN: "인증정보가 없습니다",
+                NOT_SUPPORTED_TYPE: "지원하지 않는 인증방식 입니다.",
+                EXPIRED: '인증 정보가 만료되었습니다.',
+                NO_USER: '인증 정보와 일치하는 사용자가 없습니다.',
+                INVALID: '인증 정보가 유효하지 않습니다.',
+                DISCARDED_TOKEN: '폐기 된 인증 정보입니다.',
             }
 
 

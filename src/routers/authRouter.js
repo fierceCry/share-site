@@ -57,7 +57,7 @@ authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
         if (!user) return res.status(HTTP_STATUS.UNAUTHORIZED).message(MESSAGES.AUTH.COMMON.EMAIL.NOTFOUND);
         // 비밀번호 확인
         const userPassword = bcrypt.compareSync(password, user.password);
-        if (!userPassword) return res.status(HTTP_STATUS.UNAUTHORIZED).message(MESSAGES.AUTH.COMMON.PASSWORD.NOTFOUND);
+        if (!userPassword) return res.status(HTTP_STATUS.UNAUTHORIZED).message(MESSAGES.AUTH.COMMON.PASSWORD.NOTMATCHED);
         // jwt 생성
         const payload = { id: user.userId };
         const accessToken = await generateAuthTokens(payload);
