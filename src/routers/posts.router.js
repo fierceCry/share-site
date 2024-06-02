@@ -32,7 +32,7 @@ postsRouter.post('/posts',postCreateValidator ,async(req, res, next) => {
 })
 
 //게시글 목록 조회
-postsRouter.get('/', async(req, res, next) => {
+postsRouter.get('/posts', async(req, res, next) => {
     try{
         const {userId} = req.user;
         //const postId = userId;
