@@ -68,7 +68,7 @@ model RefreshToken {
 }
 
 model Comment {
-  contentId Int      @id @default(autoincrement())
+  commentId Int      @id @default(autoincrement())
   userId    Int
   postId    Int
   comment   String

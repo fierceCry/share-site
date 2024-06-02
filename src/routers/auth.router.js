@@ -4,7 +4,6 @@ import { prisma } from '../utils/prisma.utils.js';
 import nodeMailer from 'nodemailer';
 import { emalilCodeSchema } from '../middlwarmies/validation/emailCode.validation.middleware.js';
 import passport from '../passport.Strategy/naver.Strategy.js';
-
 const authRouter = express();
 
 authRouter.get('/naver', passport.authenticate('naver', { session: false, authType: 'reprompt' }));
