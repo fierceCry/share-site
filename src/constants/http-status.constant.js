@@ -5,5 +5,6 @@ export const HTTP_STATUS = {
     UNAUTHORIZED: 401, // 인증 실패
     FORBIDDEN: 403,     // 인가 실패
     CONFLICT: 409,
+    NOT_FOUND: 404, 
     INTERNAL_SERVER_ERROR: 500
 }
