@@ -3,8 +3,20 @@ import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
 import nodeMailer from 'nodemailer';
 import { emalilCodeSchema } from '../middlwarmies/validation/emailCode.validation.middleware.js';
+import passport from '../passport.Strategy/naver.Strategy.js';
 
 const authRouter = express();
+
+authRouter.get('/naver', passport.authenticate('naver', { session: false, authType: 'reprompt' }));
+
+authRouter.get(
+  '/naver/callback',
+  passport.authenticate('naver', { session: false, failureRedirect: '/' }),
+  (req, res) => {
+    const data = req.user.data;
+    res.json({ data });
+  }
+);
 
 /** 이메일 인증 가입 메일 전송 기능 **/
 authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {

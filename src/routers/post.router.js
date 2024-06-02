@@ -1,13 +1,11 @@
 import express from 'express';
 import { prisma } from '../utils/prisma.utils.js';
-import { requireAccessToken } from '../middlwarmies/require-access-token.middleware.js';
 
 const postsRouter = express();
 
 /** 게시글 좋아요 기능 **/
 postsRouter.patch(
   '/likes/:postId',
-  requireAccessToken,
   async (req, res, next) => {
     try {
       const { postId } = req.params;
@@ -57,7 +55,6 @@ postsRouter.patch(
 /** 댓글 좋아요 기능 **/
 postsRouter.patch(
   '/likes/:postId/:commentId',
-  requireAccessToken,
   async (req, res, next) => {
     try {
       const { postId, commentId } = req.params;
