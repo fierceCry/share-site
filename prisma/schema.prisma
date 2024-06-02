@@ -14,12 +14,13 @@ model User {
   nickname            String    @unique
   oneLiner            String?   @map("one_liner")
   imageUrl            String?   @default("https://nyjtkd.net/common/img/default_profile.png") @map("image_url")
+  provider            Provider    
   emailVerified       Boolean   @map("email_varified")
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
   refreshToken       RefreshToken?
-  content            Content[]
+  comment            Comment[]
   like               Like[]
   posts              Post[]
   followers          Follows[] @relation("followers")
@@ -32,14 +33,14 @@ model Post {
   postId    Int       @id @default(autoincrement()) @map("post_id")
   userId    Int       @map("user_id")
   title     String
-  content   String
+  comment   String
   regionId  Int       @map("region_id")
   imageUrl  String    @map("image_url")
   createdAt DateTime  @default(now()) @map("created_at")
   updatedAt DateTime  @updatedAt @map("updated_at")
 
   user      User      @relation(fields: [userId], references: [userId])
-  Content   Content[]
+  Comment   Comment[]
   Like      Like[]
   region    RegionCategory @relation(fields: [regionId], references: [regionCategoryId])
 
@@ -66,18 +67,18 @@ model RefreshToken {
   @@map("refresh_token")
 }
 
-model Content {
+model Comment {
   contentId Int      @id @default(autoincrement())
   userId    Int
   postId    Int
-  content   String
+  comment   String
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   user      User    @relation(fields: [userId], references: [userId])
   post      Post    @relation(fields: [postId], references: [postId])
 
-  @@map("content")
+  @@map("comment")
 }
 
 model Like {
@@ -114,3 +115,8 @@ model EmailAuthCode {
 
   @@map("email_auth_code")
 }  
+
+enum Provider{
+  naver
+  kakao
+}
