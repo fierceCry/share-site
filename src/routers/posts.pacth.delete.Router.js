@@ -1,56 +1,96 @@
-import express from 'express';
-import { prisma } from '../utils/prisma.utils.js';
-// import bcrypt from 'bcrypt';
-// import jwt from 'jsonwebtoken';
-//미들웨어 파일 필요
-
-const router = express.Router();
-
 // 게시글 수정
-router.patch(
-  '/posts/:id',
-  /* 미들웨어,*/ async (req, res, next) => {
+router.patch('/posts/:postId', requireAccessToken, async (req, res, next) => {
+  try {
     const { userId } = req.user;
-    const { id } = req.params;
-    const { title, content, imageUrl, regionName } = req.body;
+    const { postId } = req.params;
+    const { title, content, regionId, imageUrl } = req.body;
 
-    const idcheck = await prisma.post.findFirst({
-      where: { AND: [{ userId: +userId }, { postId: +id }] },
+    const idcheck = await prisma.Post.findUnique({
+      where: {
+        postId: +postId,
+      },
     });
 
     if (!idcheck) {
-      return res.status(400).json({ message: '게시물이 존재하지 않습니다.' });
+      return res.status(404).json({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: '게시물이 존재하지 않습니다.',
+      });
     }
 
-    if (!title && !content && !imageUrl && !regionName) {
-      return res.status(400).json({ message: '수정된 내용이 없습니다.' });
+    if (!title && !content && !imageUrl && !regionId) {
+      return res.status(400).json({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: '수정된 내용이 없습니다.',
+      });
     }
 
-    const updatedPost = await prisma.post.update({
-      where: { postId: +id },
+    const updatedPost = await prisma.Post.update({
+      where: { postId: +postId },
       data: {
         title,
         content,
         imageUrl,
-        regionName,
+        regionId,
         updatedAt: new Date(),
       },
-      select: {
-        postId: true,
-        userId: true,
-        title: true,
-        content: true,
-        imageUrl: true,
-        regionName: true,
-        createdAt: true,
-        updatedAt: true,
+      include: {
+        user: {
+          select: {
+            email: true,
+            nickname: true,
+          },
+        },
       },
     });
 
     return res.status(200).json({
-      status: 200,
-      message: '수정완료 되었습니다.',
-      data: updatedPost,
+      status: HTTP_STATUS.OK,
+      message: '수정 완료되었습니다.',
+      data: {
+        postId: updatedPost.postId,
+        email: updatedPost.user.email,
+        nickname: updatedPost.user.nickname,
+        title: updatedPost.title,
+        content: updatedPost.content,
+        imageUrl: updatedPost.imageUrl,
+        region: updatedPost.regionId,
+        createdAt: updatedPost.createdAt,
+        updatedAt: updatedPost.updatedAt,
+      },
     });
+  } catch (error) {
+    next(error);
   }
-);
+});
+
+//게시글 삭제
+router.delete('/posts/:postId', requireAccessToken, async (req, res, next) => {
+  try {
+    const { postId } = req.params;
+
+    const idcheck = await prisma.Post.findUnique({
+      where: {
+        postId: +postId,
+      },
+    });
+
+    if (!idcheck) {
+      return res.status(404).json({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: '게시물이 존재하지 않습니다.',
+      });
+    }
+
+    await prisma.Post.delete({
+      where: { postId: +postId },
+    });
+
+    return res.status(200).json({
+      status: HTTP_STATUS.OK,
+      message: '게시글 삭제가 완료되었습니다.',
+    });
+  } catch (error) {
+    next(error);
+  }
+});

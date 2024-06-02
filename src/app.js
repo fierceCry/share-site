@@ -7,7 +7,7 @@ import logMiddleware from './middlwarmies/log.middleware.js';
 
 const app = express();
 
-app.use(passport.initialize());
+// app.use(passport.initialize());
 app.use(logMiddleware);
 app.use(express.json());
 app.use(apiRouter);

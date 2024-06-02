@@ -28,13 +28,11 @@ postsRouter.post(
         },
       });
 
-      return res
-        .status(HTTP_STATUS.CREATED)
-        .json({
-          status: HTTP_STATUS.CREATED,
-          message: POST_MESSAGES.POST_CREATE,
-          data,
-        });
+      return res.status(HTTP_STATUS.CREATED).json({
+        status: HTTP_STATUS.CREATED,
+        message: POST_MESSAGES.POST_CREATE,
+        data,
+      });
     } catch (error) {
       next(error);
     }
@@ -98,13 +96,11 @@ postsRouter.get('/:id', async (req, res, next) => {
     });
 
     if (!data) {
-      return res
-        .status(HTTP_STATUS.NOT_FOUND)
-        .json({
-          status: HTTP_STATUS.NOT_FOUND,
-          message: POST_MESSAGES.POST_NOT_FOUND,
-          data,
-        });
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: POST_MESSAGES.POST_NOT_FOUND,
+        data,
+      });
     }
 
     data = {
@@ -116,13 +112,11 @@ postsRouter.get('/:id', async (req, res, next) => {
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
     };
-    return res
-      .status(HTTP_STATUS.OK)
-      .json({
-        status: HTTP_STATUS.OK,
-        message: POST_MESSAGES.POST_DETAIL,
-        data,
-      });
+    return res.status(HTTP_STATUS.OK).json({
+      status: HTTP_STATUS.OK,
+      message: POST_MESSAGES.POST_DETAIL,
+      data,
+    });
   } catch (error) {
     next(error);
   }
@@ -361,12 +355,10 @@ postsRouter.patch(
           comment: comment,
         },
       });
-      return res
-        .status(200)
-        .json({
-          message: '댓글이 성공적으로 수정되었습니다.',
-          data: updatedComment,
-        });
+      return res.status(200).json({
+        message: '댓글이 성공적으로 수정되었습니다.',
+        data: updatedComment,
+      });
     } catch (error) {
       next(error);
     }
@@ -399,12 +391,10 @@ postsRouter.delete(
           userId: userId,
         },
       });
-      return res
-        .status(200)
-        .json({
-          message: '댓글이 성공적으로 삭제되었습니다.',
-          data: deleteComment,
-        });
+      return res.status(200).json({
+        message: '댓글이 성공적으로 삭제되었습니다.',
+        data: deleteComment,
+      });
     } catch (error) {
       next(error);
     }

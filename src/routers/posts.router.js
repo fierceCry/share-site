@@ -1,10 +1,12 @@
 import express from 'express';
-import { HTTP_STATUS } from '../constants/http-status.contant.js';
+import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { POST_MESSAGES } from '../constants/post.constant.js';
-//import {postCreateValidator} from '../middlwarmies/validators/' //파일이 안뜬거 확인하기
+// import { postCreateValidator } from '../middlwarmies/validators/'; //파일이 안뜬거 확인하기
 import { prisma } from '../utils/prisma.utils.js';
 import { postCreateValidator } from '../middlwarmies/validators/src/middlewares/validators/create-post-validator.middleware.js';
+
 const postsRouter = express.Router();
+
 //게시글 생성
 postsRouter.post('/posts', postCreateValidator, async (req, res, next) => {
   console.log(req.body);
@@ -22,13 +24,11 @@ postsRouter.post('/posts', postCreateValidator, async (req, res, next) => {
       },
     });
 
-    return res
-      .status(HTTP_STATUS.CREATED)
-      .json({
-        status: HTTP_STATUS.CREATED,
-        message: POST_MESSAGES.POST_CREATE,
-        data,
-      });
+    return res.status(HTTP_STATUS.CREATED).json({
+      status: HTTP_STATUS.CREATED,
+      message: POST_MESSAGES.POST_CREATE,
+      data,
+    });
   } catch (error) {
     next(error);
   }
@@ -91,13 +91,11 @@ postsRouter.get('/:id', async (req, res, next) => {
     });
 
     if (!data) {
-      return res
-        .status(HTTP_STATUS.CREATED)
-        .json({
-          status: HTTP_STATUS.NOT_FOUND,
-          message: POST_MESSAGES.POST_NOT_FOUND,
-          data,
-        });
+      return res.status(HTTP_STATUS.CREATED).json({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: POST_MESSAGES.POST_NOT_FOUND,
+        data,
+      });
     }
 
     data = {
@@ -109,13 +107,11 @@ postsRouter.get('/:id', async (req, res, next) => {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
     };
-    return res
-      .status(HTTP_STATUS.CREATED)
-      .json({
-        status: HTTP_STATUS.CREATED,
-        message: POST_MESSAGES.POST_DETAIL,
-        data,
-      });
+    return res.status(HTTP_STATUS.CREATED).json({
+      status: HTTP_STATUS.CREATED,
+      message: POST_MESSAGES.POST_DETAIL,
+      data,
+    });
   } catch (error) {
     next(error);
   }
