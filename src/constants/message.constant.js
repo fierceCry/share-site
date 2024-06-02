@@ -1,4 +1,4 @@
-import { MIN_PASSWORD_LENGTH } from './auth.constant.js'
+import { authConstant } from './auth.constant.js'
 
 export const MESSAGES = {
     AUTH: {
@@ -11,7 +11,7 @@ export const MESSAGES = {
             },
             PASSWORD: {
                 REQUIRED: "비밀번호를 입력해주세요",
-                MIN_LENGTH: `비밀번호는 ${MIN_PASSWORD_LENGTH}자리 이상이어야 합니다.`,
+                MIN_LENGTH: `비밀번호는 ${authConstant.MIN_PASSWORD_LENGTH}자리 이상이어야 합니다.`,
             },
             PASSWORD_CONFIRM: {
                 REQUIRED: "비밀번호 확인을 입력해주세요",

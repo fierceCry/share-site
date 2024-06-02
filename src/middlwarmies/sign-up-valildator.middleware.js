@@ -1,12 +1,12 @@
 import Joi from 'Joi';
 import { MESSAGES } from '../constants/message.constant.js';
-import { MIN_PASSWORD_LENGTH } from '../constants/auth.constant.js';
+import { authConstant } from '../constants/auth.constant.js';
 const schema = Joi.object({
     email: Joi.string().email().required().messages({
         'any.required': MESSAGES.AUTH.COMMON.EMAIL.REQUIRED,
         'string.email': MESSAGES.AUTH.COMMON.EMAIL.FORMAT
     }),
-    password: Joi.string().required().min(MIN_PASSWORD_LENGTH).messages({
+    password: Joi.string().required().min(authConstant.MIN_PASSWORD_LENGTH).messages({
         'any.required': MESSAGES.AUTH.COMMON.PASSWORD.REQUIRED,
         'string.min': MESSAGES.AUTH.COMMON.PASSWORD.MIN_LENGTH
     }),
@@ -19,6 +19,9 @@ const schema = Joi.object({
     }),
     emailVerified: Joi.boolean().required().messages({
         'any.required': MESSAGES.AUTH.COMMON.EMAILVERIFIED.REQUIRED,
+    }),
+    oneLiner: Joi.string().required().messages({
+        'any.required': MESSAGES.AUTH.COMMON.NICKNAME.REQUIRED,
     }),
 
 })
