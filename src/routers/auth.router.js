@@ -28,6 +28,7 @@ authRouter.get(
 authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
   try {
     const { email, password, nickname, oneLiner, imageUrl, emailVerified, provider } = req.body;
+    console.log(req.body)
     //중복되는 이메일이 있다면 회원가입 실패
     const existedUser = await prisma.user.findUnique({ where: { email } });
     if (existedUser)
@@ -94,36 +95,7 @@ authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
   }
 });
 
-//토큰 생성
-const generateAuthTokens = async (payload) => {
-  const userId = payload.id;
 
-  const accessToken = jwt.sign(payload, ENV_KEY.ACCESS_TOKEN_SECRET, {
-      expiresIn: '12h',
-  });
-
-  const refreshToken = jwt.sign(payload, ENV_KEY.REFRESH_TOKEN_SECRET, {
-      expiresIn: '7d',
-  });
-
-  const hashedRefreshToken = bcrypt.hashSync(refreshToken, authConstant.HASH_SALT_ROUNDS);
-
-  // RefreshToken을 갱신 ( 없을경우 생성 )
-  await prisma.refreshToken.upsert({
-      where: {
-          userId,
-      },
-      update: {
-          refreshToken: hashedRefreshToken,
-      },
-      create: {
-          userId,
-          refreshToken: hashedRefreshToken,
-      },
-  });
-
-  return { accessToken, refreshToken };
-};
 
 /** 이메일 인증 가입 메일 전송 기능 **/
 authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
@@ -223,6 +195,37 @@ authRouter.get('/verify-email/:email/:emailCode', async(req, res, next) => {
   }
 })
 
+//토큰 생성
+const generateAuthTokens = async (payload) => {
+  const userId = payload.id;
+  console.log(payload)
+  const accessToken = jwt.sign(payload, ENV_KEY.ACCESS_TOKEN_SECRET, {
+      expiresIn: '12h',
+  });
+  console.log(accessToken)
+  const refreshToken = jwt.sign(payload, ENV_KEY.REFRESH_TOKEN_SECRET, {
+      expiresIn: '7d',
+  });
+  console.log(refreshToken)
+  const hashedRefreshToken = bcrypt.hashSync(refreshToken, authConstant.HASH_SALT_ROUNDS);
+
+  // RefreshToken을 갱신 ( 없을경우 생성 )
+  await prisma.refreshToken.upsert({
+      where: {
+          userId,
+      },
+      update: {
+          refreshToken: hashedRefreshToken,
+      },
+      create: {
+          userId,
+          refreshToken: hashedRefreshToken,
+      },
+  });
+
+  return { accessToken, refreshToken };
+};
+
 /** 인증코드 랜덤 발급 **/
 const generateRandomCode = () =>{
   let code = '';
@@ -239,4 +242,4 @@ const generateRandomCode = () =>{
   return code;
 }
 
-export { authRouter };
+export { authRouter, generateAuthTokens };

@@ -4,9 +4,11 @@ import { globalErrorHandler } from '../src/middlwarmies/error-handler.middleware
 import { ENV_KEY } from './constants/env.constant.js';
 import logMiddleware from './middlwarmies/log.middleware.js';
 import passport from 'passport';
+import cors from 'cors';
 
 const app = express();
 
+app.use(cors())
 app.use(passport.initialize());
 app.use(logMiddleware)
 app.use(express.json())

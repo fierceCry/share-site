@@ -30,6 +30,7 @@ const schema = Joi.object({
 
 export const signupValidator = async (req, res, next) => {
     try {
+        console.log(req)
         await schema.validateAsync(req.body);
         next();
     } catch (error) {
