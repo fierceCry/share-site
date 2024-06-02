@@ -12,6 +12,7 @@ export const MESSAGES = {
             PASSWORD: {
                 REQUIRED: "비밀번호를 입력해주세요",
                 MIN_LENGTH: `비밀번호는 ${authConstant.MIN_PASSWORD_LENGTH}자리 이상이어야 합니다.`,
+                NOTFOUND: "조회되지 않는 비밀번호입니다."
             },
             PASSWORD_CONFIRM: {
                 REQUIRED: "비밀번호 확인을 입력해주세요",
@@ -28,6 +29,9 @@ export const MESSAGES = {
 
         },
         SIGN_UP: {
+            SUCCEED: "회원가입에 성공했습니다"
+        },
+        SIGN_IN: {
             SUCCEED: "회원가입에 성공했습니다"
         }
 
