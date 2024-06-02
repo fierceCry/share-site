@@ -2,10 +2,6 @@ import express from 'express';
 import { apiRouter } from '../src/routers/index.js';
 import { globalErrorHandler } from '../src/middlwarmies/error-handler.middleware.js';
 import { ENV_KEY } from './constants/env.constant.js';
-<<<<<<< HEAD
-=======
-const app = express();
->>>>>>> 4616763e03f7c83c1c29b4bcbb4bc1c9b8c6d8e5
 
 const app = express();
 
