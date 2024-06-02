@@ -13,7 +13,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        const user = await prisma.user.findFirst({
+        let user = await prisma.user.findFirst({
           where: { email: profile.email },
         });
 
@@ -28,7 +28,7 @@ passport.use(
             },
           });
         }
-
+        console.log(user)
         const token = jwt.sign({ userId: user.id }, process.env.JWT_SECRET, {
           expiresIn: '12h',
         });

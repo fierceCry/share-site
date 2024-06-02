@@ -23,6 +23,12 @@ export const MESSAGES = {
             },
             EMAILVERIFIED: {
                 REQUIRED: "이메일 인증을 확인해주세요",
+            },
+            ONE_LINER:{
+                REQUIRED: "한줄 소개 입력해주세요",
+            },
+            PROVIDER:{
+                REQUIRED: "일반, 네이버, 카카오"
             }
 
 
