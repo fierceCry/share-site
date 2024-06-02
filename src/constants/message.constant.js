@@ -25,6 +25,12 @@ export const MESSAGES = {
             EMAILVERIFIED: {
                 REQUIRED: "이메일 인증을 확인해주세요",
             },
+            ONE_LINER:{
+                REQUIRED: "한줄 소개 입력해주세요",
+            },
+            PROVIDER:{
+                REQUIRED: "일반, 네이버, 카카오"
+            },
             JWT: {
                 NO_TOKEN: "인증정보가 없습니다",
                 NOT_SUPPORTED_TYPE: "지원하지 않는 인증방식 입니다.",
