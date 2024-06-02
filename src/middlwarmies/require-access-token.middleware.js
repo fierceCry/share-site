@@ -68,7 +68,7 @@ export const requireAccessToken = async (req, res, next) => {
         message: MESSAGES.AUTH.COMMON.JWT.NO_USER,
       });
     }
-    
+
     req.user = user;
     next();
   } catch (error) {
