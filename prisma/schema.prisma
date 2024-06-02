@@ -117,6 +117,7 @@ model EmailAuthCode {
 }  
 
 enum Provider{
+  local
   naver
   kakao
 }
