@@ -11,6 +11,7 @@ import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { MESSAGES } from '../constants/message.constant.js';
 import { signupValidator } from '../middlwarmies/validation/sign-up-validator.middleware.js';
 import { signinValidator } from '../middlwarmies/validation/sign-in-validator.middleware.js';
+import { requireRefreshToken } from '../middlwarmies/require-refresh-token.middleware.js';
 
 const authRouter = express();
 
@@ -72,25 +73,25 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
 
 authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
   try {
-      const { email, password } = req.body;
-      // 해당 사용자가 없을 시
-      const user = await prisma.user.findUnique({ where: { email } });
-      if (!user) return res.status(HTTP_STATUS.UNAUTHORIZED).json({message:MESSAGES.AUTH.COMMON.EMAIL.NOTFOUND});
-      // 비밀번호 확인
-      const userPassword = bcrypt.compareSync(password, user.password);
-      if (!userPassword) return res.status(HTTP_STATUS.UNAUTHORIZED).json({message:MESSAGES.AUTH.COMMON.PASSWORD.NOTMATCHED});
-      // jwt 생성
-      const payload = { id: user.userId };
-      const accessToken = await generateAuthTokens(payload);
+    const { email, password } = req.body;
+    // 해당 사용자가 없을 시
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: MESSAGES.AUTH.COMMON.EMAIL.NOTFOUND });
+    // 비밀번호 확인
+    const userPassword = bcrypt.compareSync(password, user.password);
+    if (!userPassword) return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: MESSAGES.AUTH.COMMON.PASSWORD.NOTMATCHED });
+    // jwt 생성
+    const payload = { id: user.userId };
+    const accessToken = await generateAuthTokens(payload);
 
-      return res.status(HTTP_STATUS.OK).json({
-          status: HTTP_STATUS.OK,
-          message: MESSAGES.AUTH.SIGN_IN.SUCCEED,
-          data: { accessToken }
-      });
-      next();
+    return res.status(HTTP_STATUS.OK).json({
+      status: HTTP_STATUS.OK,
+      message: MESSAGES.AUTH.SIGN_IN.SUCCEED,
+      data: { accessToken }
+    });
+    next();
   } catch (err) {
-      next(err);
+    next(err);
   }
 });
 
@@ -99,49 +100,82 @@ const generateAuthTokens = async (payload) => {
   const userId = payload.id;
 
   const accessToken = jwt.sign(payload, ENV_KEY.ACCESS_TOKEN_SECRET, {
-      expiresIn: '12h',
+    expiresIn: '12h',
   });
 
   const refreshToken = jwt.sign(payload, ENV_KEY.REFRESH_TOKEN_SECRET, {
-      expiresIn: '7d',
+    expiresIn: '7d',
   });
 
   const hashedRefreshToken = bcrypt.hashSync(refreshToken, authConstant.HASH_SALT_ROUNDS);
 
   // RefreshToken을 갱신 ( 없을경우 생성 )
   await prisma.refreshToken.upsert({
-      where: {
-          userId,
-      },
-      update: {
-          refreshToken: hashedRefreshToken,
-      },
-      create: {
-          userId,
-          refreshToken: hashedRefreshToken,
-      },
+    where: {
+      userId,
+    },
+    update: {
+      refreshToken: hashedRefreshToken,
+    },
+    create: {
+      userId,
+      refreshToken: hashedRefreshToken,
+    },
   });
 
   return { accessToken, refreshToken };
 };
+// 토큰 재발금
+authRouter.post('/token', requireRefreshToken, async (req, res, next) => {
+  try {
+    const user = req.user;
 
+    const payload = { id: user.id };
+
+    const data = await generateAuthTokens(payload);
+
+    return res.status(HTTP_STATUS.OK).json({
+      status: HTTP_STATUS.OK,
+      message: MESSAGES.AUTH.TOKEN.SUCCEED,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 로그아웃
+authRouter.delete('/sign-out', requireRefreshToken, async (req, res, next) => {
+  const user = req.user;
+  await prisma.refreshToken.update({
+    where: { userId: user.userId },
+    data: {
+      refreshToken: null,
+    },
+  });
+  return res.status(HTTP_STATUS.OK).json({
+    status: HTTP_STATUS.OK,
+    message: MESSAGES.AUTH.SIGN_OUT.SUCCEED,
+    data: { id: user.userId },
+  })
+});
 /** 이메일 인증 가입 메일 전송 기능 **/
-authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
+authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
   try {
     const { email } = req.body;
 
     const userData = await prisma.emailAuthCode.findFirst({
       where: { email: email }
     });
- 
+
     const emailCode = generateRandomCode();
     const expirationAt = new Date()
-    expirationAt.setMinutes(expirationAt.getMinutes()+ 5);
+    expirationAt.setMinutes(expirationAt.getMinutes() + 5);
     if (userData) {
       await prisma.emailAuthCode.update({
-        where: { 
+        where: {
           emailCodeId: userData.emailCodeId,
-          email: userData.email 
+          email: userData.email
         },
         data: {
           emailCode: emailCode,
@@ -166,8 +200,8 @@ authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
     const mailOptions = {
       to: email,
       subject: '맛집 추천 이메일 인증번호 발송',
-      html: 
-      `
+      html:
+        `
       <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; border: none; width: 100%; max-width: 600px; margin: 0 auto;">
       <tr>
         <td style="padding: 20px; text-align: center;">
@@ -201,7 +235,7 @@ authRouter.post('/email', emalilCodeSchema, async(req, res, next) => {
 });
 
 /** 이메일 가입 인증 확인 기능 **/
-authRouter.get('/verify-email/:email/:emailCode', async(req, res, next) => {
+authRouter.get('/verify-email/:email/:emailCode', async (req, res, next) => {
   try {
     const { email, emailCode } = req.params;
 
@@ -224,7 +258,7 @@ authRouter.get('/verify-email/:email/:emailCode', async(req, res, next) => {
 })
 
 /** 인증코드 랜덤 발급 **/
-const generateRandomCode = () =>{
+const generateRandomCode = () => {
   let code = '';
   for (let i = 0; i < 8; i++) {
     let randomAscii = Math.floor(Math.random() * (122 - 48 + 1)) + 48;
