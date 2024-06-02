@@ -35,17 +35,39 @@ postsRouter.post('/posts',postCreateValidator ,async(req, res, next) => {
 postsRouter.get('/', async(req, res, next) => {
     try{
         const {userId} = req.user;
-        const postId = userId;
-        
+        //const postId = userId;
         //정렬
         let { sort } = req.query;
 
         sort = sort?.toLowerCase();
 
-        if (sort)
-        
+        if (sort !== 'desc' && sort !== 'asc'){
+            sort = 'desc';
+        }
 
-        return res.status(HTTP_STATUS.CREATED).json({status:HTTP_STATUS.CREATED, message:POST_MESSAGES.POST_LIST,data});
+        let data = await prisma.post.findMany({
+            where: { userId },
+            orderBy: {
+                createdAt: sort,
+            },
+            include: {
+                user: true,
+            }
+        })
+
+        data = data.map((post)=>{
+            return{
+                postId: post.postId,
+                title: post.title,
+                content: post.content,
+                regionId: post.regionId,
+                imageUrl: post.imageUrl,
+                createdAt: post.createdAt,
+                updatedAt: post.updatedAt,
+            }
+        })
+
+        return res.status(HTTP_STATUS.OK).json({status:HTTP_STATUS.OK, message:POST_MESSAGES.POST_LIST,data});
     } catch (error) {
         next(error);
     }
