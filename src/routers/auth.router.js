@@ -11,6 +11,7 @@ import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { MESSAGES } from '../constants/message.constant.js';
 import { signupValidator } from '../middlwarmies/validation/sign-up-validator.middleware.js';
 import { signinValidator } from '../middlwarmies/validation/sign-in-validator.middleware.js';
+import { requireRefreshToken } from '../middlwarmies/require-refresh-token.middleware.js';
 
 const authRouter = express();
 
@@ -144,7 +145,40 @@ const generateAuthTokens = async (payload) => {
 
   return { accessToken, refreshToken };
 };
+// 토큰 재발금
+authRouter.post('/token', requireRefreshToken, async (req, res, next) => {
+  try {
+    const user = req.user;
 
+    const payload = { id: user.id };
+
+    const data = await generateAuthTokens(payload);
+
+    return res.status(HTTP_STATUS.OK).json({
+      status: HTTP_STATUS.OK,
+      message: MESSAGES.AUTH.TOKEN.SUCCEED,
+      data,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+// 로그아웃
+authRouter.delete('/sign-out', requireRefreshToken, async (req, res, next) => {
+  const user = req.user;
+  await prisma.refreshToken.update({
+    where: { userId: user.userId },
+    data: {
+      refreshToken: null,
+    },
+  });
+  return res.status(HTTP_STATUS.OK).json({
+    status: HTTP_STATUS.OK,
+    message: MESSAGES.AUTH.SIGN_OUT.SUCCEED,
+    data: { id: user.userId },
+  });
+});
 /** 이메일 인증 가입 메일 전송 기능 **/
 authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
   try {

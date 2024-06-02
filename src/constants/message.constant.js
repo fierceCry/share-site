@@ -44,7 +44,10 @@ export const MESSAGES = {
       SUCCEED: '회원가입에 성공했습니다',
     },
     SIGN_IN: {
-      SUCCEED: '회원가입에 성공했습니다',
+      SUCCEED: '로그인에 성공했습니다.',
+    },
+    SIGN_OUT: {
+      SUCCEED: '로그아웃에 성공했습니다.',
     },
   },
 };
