@@ -1,4 +1,4 @@
-import Joi from 'joi'
+import Joi from 'Joi'
 
 const schema = Joi.object({
     title: Joi.string().required().messages({'any.required':'제목을 입력해주세요',}),

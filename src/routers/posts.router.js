@@ -75,10 +75,32 @@ postsRouter.get('/', async(req, res, next) => {
 //게시글 상세 조회
 postsRouter.get('/:id', async(req, res, next) => {
     try{
-        const data = null;
-        
+        const user = req.user;
+        const  userId = user.userId;
 
-        return res.status(HTTP_STATUS.CREATED).json({status:HTTP_STATUS.CREATED, message:POST_MESSAGES.POST_DETAIL,data});
+        const {postId} = req. params
+        
+        let data = await prisma.post.findUnique({
+            where: { postId },
+            include: { user: true},
+            })
+        
+        if (!data) {
+            return res.status(HTTP_STATUS.CREATED)
+            .json({status:HTTP_STATUS.NOT_FOUND, message:POST_MESSAGES.POST_NOT_FOUND,data});
+        }
+        
+        data= {
+            postId: post.postId,
+            title: post.title,
+            content: post.content,
+            regionId: post.regionId,
+            imageUrl: post.imageUrl,
+            createdAt: post.createdAt,
+            updatedAt: post.updatedAt,
+        }
+        return res.status(HTTP_STATUS.CREATED)
+        .json({status:HTTP_STATUS.CREATED, message:POST_MESSAGES.POST_DETAIL,data});
     } catch (error) {
         next(error);
     }
