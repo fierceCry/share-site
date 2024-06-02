@@ -19,50 +19,51 @@ model User {
   createdAt           DateTime  @default(now()) @map("created_at")
   updatedAt           DateTime  @updatedAt @map("updated_at")
 
-  refreshToken       RefreshToken?
-  comment            Comment[]
-  like               Like[]
-  posts              Post[]
-  followers          Follows[] @relation("followers")
-  following         Follows[] @relation("following")
+  refreshToken RefreshToken?
+  comment      Comment[]
+  like         Like[]
+  posts        Post[]
+  followers    Follows[]     @relation("followers")
+  following    Follows[]     @relation("following")
 
   @@map("user")
 }
 
 model Post {
-  postId    Int       @id @default(autoincrement()) @map("post_id")
-  userId    Int       @map("user_id")
+  postId    Int      @id @default(autoincrement()) @map("post_id")
+  userId    Int      @map("user_id")
   title     String
-  comment   String
-  regionId  Int       @map("region_id")
-  imageUrl  String    @map("image_url")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
+  content   String
+  regionId  Int      @map("region_id")
+  imageUrl  String   @map("image_url")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
-  user      User      @relation(fields: [userId], references: [userId])
-  Comment   Comment[]
-  Like      Like[]
-  region    RegionCategory @relation(fields: [regionId], references: [regionCategoryId])
+  user    User           @relation(fields: [userId], references: [userId])
+  Comment Comment[]
+  Like    Like[]
+  region  RegionCategory @relation(fields: [regionId], references: [regionCategoryId])
 
   @@map("post")
 }
 
 model RegionCategory {
-  regionCategoryId Int @id @default(autoincrement()) @map("region_category_id")
-  regionName String @map("region_name")
+  regionCategoryId Int    @id @default(autoincrement()) @map("region_category_id")
+  regionName       String @map("region_name")
 
-  posts     Post[]
+  posts Post[]
+
   @@map("region_category")
 }
 
 model RefreshToken {
-  refreshTokenId      Int      @id @default(autoincrement())
-  userId              Int      @unique
-  refreshToken        String?
-  createdAt           DateTime @default(now()) @map("created_at")
-  updatedAt           DateTime @updatedAt @map("updated_at")
+  refreshTokenId Int      @id @default(autoincrement())
+  userId         Int      @unique
+  refreshToken   String?
+  createdAt      DateTime @default(now()) @map("created_at")
+  updatedAt      DateTime @updatedAt @map("updated_at")
 
-  user       User     @relation(fields: [userId], references: [userId] )
+  user User @relation(fields: [userId], references: [userId])
 
   @@map("refresh_token")
 }
@@ -75,8 +76,8 @@ model Comment {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  user      User    @relation(fields: [userId], references: [userId])
-  post      Post    @relation(fields: [postId], references: [postId])
+  user User @relation(fields: [userId], references: [userId])
+  post Post @relation(fields: [postId], references: [postId])
 
   @@map("comment")
 }
@@ -86,9 +87,9 @@ model Like {
   userId    Int
   postId    Int
   createdAt DateTime @default(now())
-  
-  post      Post     @relation(fields: [postId], references: [postId])
-  user      User     @relation(fields: [userId], references: [userId])
+
+  post Post @relation(fields: [postId], references: [postId])
+  user User @relation(fields: [userId], references: [userId])
 
   @@map("like")
 }
@@ -99,24 +100,24 @@ model Follows {
   followedId Int
   createdAt  DateTime @default(now())
 
-  follower   User     @relation("followers", fields: [followerId], references: [userId])
-  followed   User     @relation("following", fields: [followedId], references: [userId])
-  
+  follower User @relation("followers", fields: [followerId], references: [userId])
+  followed User @relation("following", fields: [followedId], references: [userId])
+
   @@map("follows")
 }
 
 model EmailAuthCode {
-  emailCodeId   Int      @id @default(autoincrement())
-  email         String
-  emailCode     String   @map("email_code")
-  createdAt     DateTime @default(now()) @map("created_at")
-  updatedAt     DateTime @updatedAt @map("updated_at")
-  expirationAt  DateTime @map("expiration_at")
+  emailCodeId  Int      @id @default(autoincrement())
+  email        String
+  emailCode    String   @map("email_code")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+  expirationAt DateTime @map("expiration_at")
 
   @@map("email_auth_code")
-}  
+}
 
-enum Provider{
+enum Provider {
   local
   naver
   kakao

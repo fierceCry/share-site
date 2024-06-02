@@ -1,10 +1,11 @@
 import jwt from 'jsonwebtoken';
+import bcrypt from 'bcrypt';
 import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { MESSAGES } from '../constants/message.constant.js';
 import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
 
-export const requireAccessToken = async (req, res, next) => {
+export const requireRefreshToken = async (req, res, next) => {
   try {
     // 인증 정보 파싱
     const authorization = req.headers.authorization;
@@ -17,7 +18,7 @@ export const requireAccessToken = async (req, res, next) => {
       });
     }
     // JWT 표준 인증 형태와 일치하지 않는 경우
-    const [type, accessToken] = authorization.split(' ');
+    const [type, refreshToken] = authorization.split(' ');
 
     if (type !== 'Bearer') {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
@@ -26,8 +27,8 @@ export const requireAccessToken = async (req, res, next) => {
       });
     }
 
-    // AccessToken이 없는 경우
-    if (!accessToken) {
+    // RefreshToken 없는 경우
+    if (!refreshToken) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         status: HTTP_STATUS.UNAUTHORIZED,
         message: MESSAGES.AUTH.COMMON.JWT.NO_TOKEN,
@@ -36,16 +37,16 @@ export const requireAccessToken = async (req, res, next) => {
 
     let payload;
     try {
-      payload = jwt.verify(accessToken, ENV_KEY.ACCESS_TOKEN_SECRET);
+      payload = jwt.verify(refreshToken, ENV_KEY.REFRESH_TOKEN_SECRET);
     } catch (error) {
-      // AccessToken의 유효기한이 지난 경우
+      // RefreshToken 유효기한이 지난 경우
       if (error.name === 'TokenExpiredError') {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           status: HTTP_STATUS.UNAUTHORIZED,
           message: MESSAGES.AUTH.COMMON.JWT.EXPIRED,
         });
       }
-      // 그 밖의 AccessToken 검증에 실패한 경우
+      // 그 밖의 RefreshToken 검증에 실패한 경우
       else {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           status: HTTP_STATUS.UNAUTHORIZED,
@@ -53,10 +54,28 @@ export const requireAccessToken = async (req, res, next) => {
         });
       }
     }
-
-    // Payload에 담긴 사용자 ID와 일치하는 사용자가 없는 경우
     const { id } = payload;
-    console.log(id);
+    // DB로부터 RefreshToken 조회
+
+    const existedRefreshToken = await prisma.refreshToken.findUnique({
+      where: {
+        userId: id,
+      },
+    });
+
+    // 넘겨 받은 RefrehsToken과 비교
+    const isValidRefreshToken =
+      existedRefreshToken?.refreshToken &&
+      bcrypt.compareSync(refreshToken, existedRefreshToken.refreshToken);
+
+    if (!isValidRefreshToken) {
+      return res.status(HTTP_STATUS.UNAUTHORIZED).json({
+        status: HTTP_STATUS.UNAUTHORIZED,
+        message: MESSAGES.AUTH.COMMON.JWT.DISCARDED_TOKEN,
+      });
+    }
+    // Payload에 담긴 사용자 ID와 일치하는 사용자가 없는 경우
+
     const user = await prisma.user.findUnique({
       where: { userId: id },
       // omit: { password: true },
@@ -68,7 +87,6 @@ export const requireAccessToken = async (req, res, next) => {
         message: MESSAGES.AUTH.COMMON.JWT.NO_USER,
       });
     }
-    
     req.user = user;
     next();
   } catch (error) {
