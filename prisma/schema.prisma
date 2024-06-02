@@ -12,7 +12,7 @@ model User {
   email               String    @unique
   password            String?
   nickname            String    @unique
-  oneLiner            String?   @map("one_liner")
+  oneLiner            String   @map("one_liner")
   imageUrl            String?   @default("https://nyjtkd.net/common/img/default_profile.png") @map("image_url")
   provider            Provider    
   emailVerified       Boolean   @map("email_varified")
