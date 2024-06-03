@@ -89,34 +89,84 @@ postsRouter.get('/:id', async (req, res, next) => {
     //const  userId = user.userId;
 
     const { id: postId } = req.params;
-
+    console.log(postId)
+    const likeCount = await prisma.like.count({
+      where:{
+        postId: Number(postId),
+      }
+    });
     let data = await prisma.post.findUnique({
       where: { postId: Number(postId) },
-      //include: { user: true},
-    });
+      include: {
+        user: {
+          select: {
+            nickname: true
+          }
+        },
+        Comment: {
+          take: 3,
+          include: {
+            user: {
+              select: {
+                nickname: true
+              }
+            },
+           //likes: true 
+          }
+        },
+        //likes: true
+        }
+      });
 
     if (!data) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        status: HTTP_STATUS.NOT_FOUND,
-        message: POST_MESSAGES.POST_NOT_FOUND,
-        data,
-      });
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({
+          status: HTTP_STATUS.NOT_FOUND,
+          message: POST_MESSAGES.POST_NOT_FOUND,
+          data,
+        });
     }
+      // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
+    let comments = await Promise.all(data.Comment.map(async (comment) =>{
+      const commentLikeCount = await prisma.commentLike.count({
+        where: {
+          commentId: comment.commentId
+        }
+      })
+
+      return {
+        commentId: comment.commentId,
+        userId: comment.userId,
+        postId: comment.postId,
+        comment: comment.comment,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        nickname: comment.user.nickname, // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
+        likes: commentLikeCount //댓글 좋아요 수
+      };
+    }));
 
     data = {
       postId: data.postId,
       title: data.title,
       content: data.content,
+      nickname: data.user.nickname,
       regionId: data.regionId,
       imageUrl: data.imageUrl,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
+      likes: likeCount,
+      comment: comments
     };
-    return res.status(HTTP_STATUS.OK).json({
-      status: HTTP_STATUS.OK,
-      message: POST_MESSAGES.POST_DETAIL,
-      data,
-    });
+    console.log(data)
+    return res
+      .status(HTTP_STATUS.OK)
+      .json({
+        status: HTTP_STATUS.OK,
+        message: POST_MESSAGES.POST_DETAIL,
+        data,
+      });
   } catch (error) {
     next(error);
   }
