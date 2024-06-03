@@ -18,5 +18,5 @@ app.get('/api', (req, res) => {
 });
 
 app.listen(ENV_KEY.PORT, async () => {
-  console.log(ENV_KEY.PORT, '포트로 서버가 열렸습니다.');
-});
+  console.log(ENV_KEY.PORT, '포트로 서버가 열렸습니다.')
+})
