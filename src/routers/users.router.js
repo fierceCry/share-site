@@ -2,14 +2,51 @@ import express from 'express';
 import bcrypt from 'bcrypt';
 import { requireAccessToken } from '../middlwarmies/require-access-token.middleware.js';
 import { prisma } from '../utils/prisma.utils.js';
-import { authConstant } from '../constants/auth.constant.js';
-import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { MESSAGES } from '../constants/message.constant.js';
+import { HTTP_STATUS } from '../constants/http-status.constant.js';
+import { authConstant } from '../constants/auth.constant.js';
+
+const userRouter = express.Router();
 
 
-const profileRouter = express.Router();
 
-profileRouter.patch('/user', requireAccessToken, async (req, res, next) => {
+userRouter.get('/:id', requireAccessToken,async (req, res, next) => {
+    try {
+        const {  id: userId } = req.params; 
+
+        
+       
+        const userProfile = await prisma.user.findUnique({
+            where: { userId: +userId }, 
+            select: { 
+                userId: true,
+                email: true,
+                nickname: true,
+                oneLiner: true,
+                imageUrl: true,
+                createdAt: true,
+                updatedAt: true
+            }
+        });
+
+            if(!userProfile){
+                return res.status(HTTP_STATUS.NOT_FOUND).json({ error: '사용자의 프로필을 찾을 수 없습니다.'})
+            }
+
+            return res.status(HTTP_STATUS.OK).json({
+                status: HTTP_STATUS.OK,
+                userProfile
+            })
+       
+        
+    }catch(err){
+        next(err)
+    }
+})
+
+
+
+userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
     try {
         const { userId } = req.user;
         const { nickname, oneLiner } = req.body;
@@ -52,7 +89,7 @@ profileRouter.patch('/user', requireAccessToken, async (req, res, next) => {
     }
 });
 
-profileRouter.patch('/password', requireAccessToken, async (req, res, next) => {
+userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
     try {
         const { userId } = req.user;
         const { password, newPassword } = req.body;
@@ -100,4 +137,4 @@ profileRouter.patch('/password', requireAccessToken, async (req, res, next) => {
     }
 });
 
-export { profileRouter };
+export { userRouter };
