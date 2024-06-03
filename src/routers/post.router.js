@@ -504,7 +504,7 @@ postsRouter.post(
   '/upload',
   requireAccessToken,
   postCreateValidator,
-  postUpload.array('image'),
+  postUpload.array('image'), // 여러 파일 업로드 가능
   (req, res) => {
     res.status(200).json({ message: '게시글이 업로드 되었습니다.' });
   }
