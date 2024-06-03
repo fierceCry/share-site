@@ -86,63 +86,63 @@ postsRouter.get('/:id', async (req, res, next) => {
     //const  userId = user.userId;
 
     const { id: postId } = req.params;
-    console.log(postId)
+    console.log(postId);
     const likeCount = await prisma.like.count({
-      where:{
+      where: {
         postId: Number(postId),
-      }
+      },
     });
     let data = await prisma.post.findUnique({
       where: { postId: Number(postId) },
       include: {
         user: {
           select: {
-            nickname: true
-          }
+            nickname: true,
+          },
         },
         Comment: {
           take: 3,
           include: {
             user: {
               select: {
-                nickname: true
-              }
-            }
-          }
-        }
-      }
-    }); 
+                nickname: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
     if (!data) {
-      return res
-        .status(HTTP_STATUS.NOT_FOUND)
-        .json({
-          status: HTTP_STATUS.NOT_FOUND,
-          message: POST_MESSAGES.POST_NOT_FOUND,
-          data,
-        });
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
+        status: HTTP_STATUS.NOT_FOUND,
+        message: POST_MESSAGES.POST_NOT_FOUND,
+        data,
+      });
     }
-      // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
-    let comments = await Promise.all(data.Comment.map(async (comment) =>{
-      const {commentId} = req.params
-      console.log({commentId})
-      const commentLikeCount = await prisma.like.count({
-        where: {
-          commentId: commentId
-        }
-      })
+    // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
+    let comments = await Promise.all(
+      data.Comment.map(async (comment) => {
+        const { commentId } = req.params;
+        console.log({ commentId });
+        const commentLikeCount = await prisma.like.count({
+          where: {
+            commentId: commentId,
+          },
+        });
 
-      return {
-        commentId: comment.commentId,
-        userId: comment.userId,
-        postId: comment.postId,
-        comment: comment.comment,
-        createdAt: comment.createdAt,
-        updatedAt: comment.updatedAt,
-        nickname: comment.user.nickname, // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
-        likes: commentLikeCount //댓글 좋아요 수
-      };
-    }));
+        return {
+          commentId: comment.commentId,
+          userId: comment.userId,
+          postId: comment.postId,
+          comment: comment.comment,
+          createdAt: comment.createdAt,
+          updatedAt: comment.updatedAt,
+          nickname: comment.user.nickname, // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
+          likes: commentLikeCount, //댓글 좋아요 수
+        };
+      })
+    );
 
     data = {
       postId: data.postId,
@@ -156,16 +156,14 @@ postsRouter.get('/:id', async (req, res, next) => {
       updatedAt: data.updatedAt,
       comment: comments,
       likes: likeCount,
-      comment: comments
+      comment: comments,
     };
-    console.log(data)
-    return res
-      .status(HTTP_STATUS.OK)
-      .json({
-        status: HTTP_STATUS.OK,
-        message: POST_MESSAGES.POST_DETAIL,
-        data,
-      });
+    console.log(data);
+    return res.status(HTTP_STATUS.OK).json({
+      status: HTTP_STATUS.OK,
+      message: POST_MESSAGES.POST_DETAIL,
+      data,
+    });
   } catch (error) {
     next(error);
   }
@@ -348,7 +346,7 @@ postsRouter.patch(
       const likeData = await prisma.commentLike.findFirst({
         where: {
           commentId: +commentId,
-          postId :+postId,
+          postId: +postId,
           userId,
         },
       });
@@ -410,8 +408,8 @@ postsRouter.post(
         },
       });
       const data = await prisma.user.findUnique({
-        where : {userId: userId}
-      })
+        where: { userId: userId },
+      });
       const result = {
         comment: commentData.comment,
         commentId: commentData.commentId,
@@ -419,9 +417,9 @@ postsRouter.post(
         updatedAt: commentData.updatedAt,
         postId: commentData.postId,
         userId: commentData.userId,
-        nickname: data.nickname
-      }
-      console.log(result)
+        nickname: data.nickname,
+      };
+      console.log(result);
       return res
         .status(200)
         .json({ message: '댓글 생성이 완료했습니다.', data: result });
@@ -513,12 +511,10 @@ postsRouter.patch(
           comment: comment,
         },
       });
-      return res
-        .status(200)
-        .json({
-          message: '댓글이 성공적으로 수정되었습니다.',
-          data: updatedComment,
-        });
+      return res.status(200).json({
+        message: '댓글이 성공적으로 수정되었습니다.',
+        data: updatedComment,
+      });
     } catch (error) {
       next(error);
     }
@@ -536,7 +532,7 @@ postsRouter.delete(
       const data = await prisma.comment.findFirst({
         where: {
           commentId: +commentId,
-          postId: +postId        
+          postId: +postId,
         },
       });
 
@@ -556,26 +552,25 @@ postsRouter.delete(
           userId: userId,
         },
       });
-      return res
-        .status(200)
-        .json({
-          message: '댓글이 성공적으로 삭제되었습니다.',
-          data: deleteComment,
-        });
+      return res.status(200).json({
+        message: '댓글이 성공적으로 삭제되었습니다.',
+        data: deleteComment,
+      });
     } catch (error) {
       next(error);
     }
   }
 );
 
-//게시글 이미지 업로드
+// //게시글 이미지 업로드
 postsRouter.post(
   '/upload',
   requireAccessToken,
-  postCreateValidator,
-  postUpload.array('image'), // 여러 파일 업로드 가능
-  (req, res) => {
-    res.status(200).json({ message: '게시글이 업로드 되었습니다.' });
+  // postCreateValidator,
+  postUpload.array('imageUrl'), // 여러 파일 업로드 가능
+  async (req, res) => {
+    const fileNames = req.fileNames; //req.fileNames는 배열
+    res.status(200).json({ message: '게시글이 업로드 되었습니다.', fileNames });
   }
 );
 

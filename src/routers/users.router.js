@@ -153,9 +153,10 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
 userRouter.post(
   '/upload',
   requireAccessToken,
-  frofileUpload.single('image'),
-  (req, res) => {
-    res.status(200).json({ message: '프로필 사진이 업로드 되었습니다.' });
+  frofileUpload.single('imageUrl'), //단일 파일만 업로드
+  async (req, res) => {
+    const fileNames = req.fileNames; //req.fileNames는 배열
+    res.status(200).json({ message: '게시글이 업로드 되었습니다.', fileNames });
   }
 );
 

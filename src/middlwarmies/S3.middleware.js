@@ -21,6 +21,10 @@ const frofileUpload = multer({
     key: (req, file, callback) => {
       const ext = path.extname(file.originalname);
       const fileName = `${Date.now().toString()}${ext}`;
+      if (!req.fileNames) {
+        req.fileNames = [];
+      }
+      req.fileNames.push(fileName);
       callback(null, `share-site2-frofile/${fileName}`);
     },
     acl: 'public-read',
@@ -39,6 +43,10 @@ const postUpload = multer({
     key: (req, file, callback) => {
       const ext = path.extname(file.originalname);
       const fileName = `${Date.now().toString()}${ext}`;
+      if (!req.fileNames) {
+        req.fileNames = [];
+      }
+      req.fileNames.push(fileName); // req.fileNames 호출 시 배열로 호출
       callback(null, `share-site2-posts/${fileName}`);
     },
     acl: 'public-read',
