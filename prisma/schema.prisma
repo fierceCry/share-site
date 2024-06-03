@@ -23,6 +23,7 @@ model User {
   comment      Comment[]
   like         Like[]
   posts        Post[]
+  commentLike  CommentLike[]
   followers    Follows[]     @relation("followers")
   following    Follows[]     @relation("following")
 
@@ -42,6 +43,7 @@ model Post {
   user    User           @relation(fields: [userId], references: [userId])
   Comment Comment[]
   Like    Like[]
+  commentLike  CommentLike[]
   region  RegionCategory @relation(fields: [regionId], references: [regionCategoryId])
 
   @@map("post")
@@ -78,7 +80,7 @@ model Comment {
 
   user User @relation(fields: [userId], references: [userId])
   post Post @relation(fields: [postId], references: [postId])
-
+  commentLike  CommentLike[]
   @@map("comment")
 }
 
@@ -115,6 +117,19 @@ model EmailAuthCode {
   expirationAt DateTime @map("expiration_at")
 
   @@map("email_auth_code")
+}
+
+model CommentLike {
+  commentlikeId    Int      @id @default(autoincrement())
+  userId           Int      @map("user_id")
+  postId           Int      @map("post_id")
+  commentId        Int      @map("comment_id")
+  createdAt        DateTime @default(now())
+
+  post Post @relation(fields: [postId], references: [postId])
+  user User @relation(fields: [userId], references: [userId])
+  comment Comment @relation(fields: [commentId], references: [commentId])
+  @@map("comment_like")
 }
 
 enum Provider {
