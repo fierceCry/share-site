@@ -14,17 +14,16 @@ postsRouter.post(
   requireAccessToken,
   postCreateValidator,
   async (req, res, next) => {
-    //console.log(req)
     try {
       const { userId } = req.user;
-      const { title, content, regionId, imageUrl } = req.body;
+      const { title, content, regionid, imageUrl } = req.body;
 
       const data = await prisma.post.create({
         data: {
           userId: userId,
           title,
           content,
-          regionId,
+          regionid,
           imageUrl,
         },
       });
@@ -55,7 +54,6 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
     }
 
     let data = await prisma.post.findMany({
-      where: { userId },
       orderBy: {
         createdAt: sort,
       },
@@ -63,7 +61,6 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
         user: true,
       },
     });
-
     data = data.map((post) => {
       return {
         postId: post.postId,
@@ -75,7 +72,6 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
         updatedAt: post.updatedAt,
       };
     });
-
     return res
       .status(HTTP_STATUS.OK)
       .json({ status: HTTP_STATUS.OK, message: POST_MESSAGES.POST_LIST, data });
@@ -90,34 +86,86 @@ postsRouter.get('/:id', async (req, res, next) => {
     //const  userId = user.userId;
 
     const { id: postId } = req.params;
-
+    console.log(postId)
+    const likeCount = await prisma.like.count({
+      where:{
+        postId: Number(postId),
+      }
+    });
     let data = await prisma.post.findUnique({
       where: { postId: Number(postId) },
-      //include: { user: true},
-    });
+      include: {
+        user: {
+          select: {
+            nickname: true
+          }
+        },
+        Comment: {
+          take: 3,
+          include: {
+            user: {
+              select: {
+                nickname: true
+              }
+            }
+          }
+        }
+      }
+    }); 
 
     if (!data) {
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        status: HTTP_STATUS.NOT_FOUND,
-        message: POST_MESSAGES.POST_NOT_FOUND,
-        data,
-      });
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({
+          status: HTTP_STATUS.NOT_FOUND,
+          message: POST_MESSAGES.POST_NOT_FOUND,
+          data,
+        });
     }
+      // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
+    let comments = await Promise.all(data.Comment.map(async (comment) =>{
+      const {commentId} = req.params
+      console.log({commentId})
+      const commentLikeCount = await prisma.like.count({
+        where: {
+          commentId: commentId
+        }
+      })
+
+      return {
+        commentId: comment.commentId,
+        userId: comment.userId,
+        postId: comment.postId,
+        comment: comment.comment,
+        createdAt: comment.createdAt,
+        updatedAt: comment.updatedAt,
+        nickname: comment.user.nickname, // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
+        likes: commentLikeCount //댓글 좋아요 수
+      };
+    }));
 
     data = {
       postId: data.postId,
       title: data.title,
       content: data.content,
+      nickname: data.user.nickname,
+      nickname: data.user.nickname,
       regionId: data.regionId,
       imageUrl: data.imageUrl,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
+      comment: comments,
+      likes: likeCount,
+      comment: comments
     };
-    return res.status(HTTP_STATUS.OK).json({
-      status: HTTP_STATUS.OK,
-      message: POST_MESSAGES.POST_DETAIL,
-      data,
-    });
+    console.log(data)
+    return res
+      .status(HTTP_STATUS.OK)
+      .json({
+        status: HTTP_STATUS.OK,
+        message: POST_MESSAGES.POST_DETAIL,
+        data,
+      });
   } catch (error) {
     next(error);
   }
@@ -232,6 +280,7 @@ postsRouter.patch(
       const result = await prisma.post.findUnique({
         where: { postId: +postId },
       });
+
       if (!result) {
         return res.status(400).json({ message: '게시글이 존재하지 않습니다.' });
       }
@@ -296,18 +345,19 @@ postsRouter.patch(
       }
 
       // 좋아요 존재 여부 확인
-      const likeData = await prisma.like.findFirst({
+      const likeData = await prisma.commentLike.findFirst({
         where: {
           commentId: +commentId,
+          postId :+postId,
           userId,
         },
       });
 
       if (likeData) {
         // 좋아요 삭제
-        await prisma.like.delete({
+        await prisma.commentLike.delete({
           where: {
-            likeId: likeData.likeId,
+            commentlikeId: likeData.commentlikeId,
           },
         });
         return res
@@ -315,7 +365,7 @@ postsRouter.patch(
           .json({ message: '댓글 좋아요가 삭제되었습니다.' });
       } else {
         // 좋아요 생성
-        await prisma.like.create({
+        await prisma.commentLike.create({
           data: {
             commentId: +commentId,
             postId: +postId,
@@ -359,10 +409,22 @@ postsRouter.post(
           comment: comment,
         },
       });
-
+      const data = await prisma.user.findUnique({
+        where : {userId: userId}
+      })
+      const result = {
+        comment: commentData.comment,
+        commentId: commentData.commentId,
+        createdAt: commentData.createdAt,
+        updatedAt: commentData.updatedAt,
+        postId: commentData.postId,
+        userId: commentData.userId,
+        nickname: data.nickname
+      }
+      console.log(result)
       return res
         .status(200)
-        .json({ message: '댓글 생성이 완료했습니다.', data: commentData });
+        .json({ message: '댓글 생성이 완료했습니다.', data: result });
     } catch (error) {
       next(error);
     }
@@ -425,18 +487,16 @@ postsRouter.patch(
       const { postId, commentId } = req.params;
       const { userId } = req.user;
       const { comment } = req.body;
-
       const existingComment = await prisma.comment.findFirst({
         where: {
           postId: +postId,
-          contentId: +commentId,
+          commentId: +commentId,
         },
       });
 
       if (!existingComment) {
         return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
       }
-
       if (existingComment.userId !== userId) {
         return res
           .status(403)
@@ -445,7 +505,7 @@ postsRouter.patch(
 
       const updatedComment = await prisma.comment.update({
         where: {
-          contentId: +commentId,
+          commentId: +commentId,
           postId: +postId,
           userId: +userId,
         },
@@ -453,10 +513,12 @@ postsRouter.patch(
           comment: comment,
         },
       });
-      return res.status(200).json({
-        message: '댓글이 성공적으로 수정되었습니다.',
-        data: updatedComment,
-      });
+      return res
+        .status(200)
+        .json({
+          message: '댓글이 성공적으로 수정되었습니다.',
+          data: updatedComment,
+        });
     } catch (error) {
       next(error);
     }
@@ -473,9 +535,8 @@ postsRouter.delete(
 
       const data = await prisma.comment.findFirst({
         where: {
-          contentId: +commentId,
-          postId: +postId,
-          userId: userId,
+          commentId: +commentId,
+          postId: +postId        
         },
       });
 
@@ -483,16 +544,24 @@ postsRouter.delete(
         return res.status(400).json({ message: '댓글이 없습니다.' });
       }
 
+      if (data.userId !== userId) {
+        return res
+          .status(403)
+          .json({ message: '댓글을 삭제할 수 있는 권한이 없습니다.' });
+      }
+
       const deleteComment = await prisma.comment.delete({
         where: {
-          contentId: +commentId,
+          commentId: +commentId,
           userId: userId,
         },
       });
-      return res.status(200).json({
-        message: '댓글이 성공적으로 삭제되었습니다.',
-        data: deleteComment,
-      });
+      return res
+        .status(200)
+        .json({
+          message: '댓글이 성공적으로 삭제되었습니다.',
+          data: deleteComment,
+        });
     } catch (error) {
       next(error);
     }
