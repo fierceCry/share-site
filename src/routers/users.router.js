@@ -8,27 +8,18 @@ import { authConstant } from '../constants/auth.constant.js';
 
 const userRouter = express.Router();
 
-
-
 userRouter.get('/:id', requireAccessToken,async (req, res, next) => {
     try {
-        const {  id: userId } = req.params; 
-
+        const { userId, nickname, oneLiner, imageUrl, createdAt, updatedAt } = req.user;    
+        const userProfile = {         
+                userId,
+                nickname,
+                oneLiner,
+                imageUrl,
+                createdAt,
+                updatedAt
+            };
         
-       
-        const userProfile = await prisma.user.findUnique({
-            where: { userId: +userId }, 
-            select: { 
-                userId: true,
-                email: true,
-                nickname: true,
-                oneLiner: true,
-                imageUrl: true,
-                createdAt: true,
-                updatedAt: true
-            }
-        });
-
             if(!userProfile){
                 return res.status(HTTP_STATUS.NOT_FOUND).json({ error: '사용자의 프로필을 찾을 수 없습니다.'})
             }
@@ -37,14 +28,11 @@ userRouter.get('/:id', requireAccessToken,async (req, res, next) => {
                 status: HTTP_STATUS.OK,
                 userProfile
             })
-       
-        
+             
     }catch(err){
         next(err)
     }
 })
-
-
 
 userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
     try {
