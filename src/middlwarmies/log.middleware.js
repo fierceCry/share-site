@@ -14,7 +14,7 @@ export default function (req, res, next) {
 
   const start = new Date().getTime();
   res.on('finish', () => {
-    const duration = new Date().getTime() - start;  
+    const duration = new Date().getTime() - start;
     logger.info(
       `Method: ${req.method}, URL: ${req.originalUrl}, Status: ${res.statusCode}, Duration: ${duration}ms`
     );
