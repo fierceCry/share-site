@@ -5,6 +5,7 @@ import { requireAccessToken } from '../middlwarmies/require-access-token.middlew
 import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { POST_MESSAGES } from '../constants/post.constant.js';
 import { postCreateValidator } from '../middlwarmies/validators/src/middlewares/validators/create-post-validator.middleware.js';
+import { postUpload } from '../middlwarmies/S3.middleware.js';
 
 const postsRouter = express();
 //게시글 생성
@@ -495,6 +496,17 @@ postsRouter.delete(
     } catch (error) {
       next(error);
     }
+  }
+);
+
+//게시글 이미지 업로드
+postsRouter.post(
+  '/upload',
+  requireAccessToken,
+  postCreateValidator,
+  postUpload.array('image'),
+  (req, res) => {
+    res.status(200).json({ message: '게시글이 업로드 되었습니다.' });
   }
 );
 
