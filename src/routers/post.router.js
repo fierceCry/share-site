@@ -15,14 +15,14 @@ postsRouter.post(
   async (req, res, next) => {
     try {
       const { userId } = req.user;
-      const { title, content, regionId, imageUrl } = req.body;
+      const { title, content, regionid, imageUrl } = req.body;
 
       const data = await prisma.post.create({
         data: {
           userId: userId,
           title,
           content,
-          regionId,
+          regionid,
           imageUrl,
         },
       });
@@ -106,23 +106,12 @@ postsRouter.get('/:id', async (req, res, next) => {
               select: {
                 nickname: true
               }
-<<<<<<< HEAD
-            },
-           //likes: true 
-          }
-        },
-        //likes: true
-        }
-      });
-
-=======
             }
           }
         }
       }
-    });
-    
->>>>>>> main
+    }); 
+
     if (!data) {
       return res
         .status(HTTP_STATUS.NOT_FOUND)
@@ -134,9 +123,11 @@ postsRouter.get('/:id', async (req, res, next) => {
     }
       // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
     let comments = await Promise.all(data.Comment.map(async (comment) =>{
+      const {commentId} = req.params
+      console.log({commentId})
       const commentLikeCount = await prisma.like.count({
         where: {
-          commentId: comment.commentId
+          commentId: commentId
         }
       })
 
@@ -152,36 +143,21 @@ postsRouter.get('/:id', async (req, res, next) => {
       };
     }));
 
-    let comments = data.Comment.map(comment => {
-      return {
-        commentId: comment.commentId,
-        userId: comment.userId,
-        postId: comment.postId,
-        comment: comment.comment,
-        createdAt: comment.createdAt,
-        updatedAt: comment.updatedAt,
-        nickname: comment.user.nickname // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
-      };
-    });
-
     data = {
       postId: data.postId,
       title: data.title,
       content: data.content,
       nickname: data.user.nickname,
+      nickname: data.user.nickname,
       regionId: data.regionId,
       imageUrl: data.imageUrl,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
-<<<<<<< HEAD
+      comment: comments,
       likes: likeCount,
       comment: comments
     };
     console.log(data)
-=======
-      comment: comments
-    };
->>>>>>> main
     return res
       .status(HTTP_STATUS.OK)
       .json({
