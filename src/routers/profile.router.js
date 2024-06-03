@@ -33,7 +33,7 @@ profileRouter.patch('/user', requireAccessToken, async (req, res, next) => {
         if (oneLiner) updateData.oneLiner = oneLiner;
 
         const updateProfile = await prisma.user.update({
-            where: { id: userId },
+            where: { userId },
             data: updateData,
         });
 
