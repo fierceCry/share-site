@@ -1,7 +1,7 @@
 import express from 'express';
 import bcrypt from 'bcrypt';
 import nodeMailer from 'nodemailer';
-import passport from '../passport.Strategy/naver.Strategy.js';
+import { passport } from '../passport.Strategy/naver.Strategy.js';
 import jwt from 'jsonwebtoken';
 import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
@@ -12,10 +12,13 @@ import { MESSAGES } from '../constants/message.constant.js';
 import { signupValidator } from '../middlwarmies/validation/sign-up-validator.middleware.js';
 import { signinValidator } from '../middlwarmies/validation/sign-in-validator.middleware.js';
 import { requireRefreshToken } from '../middlwarmies/require-refresh-token.middleware.js';
-
+import kakaoStrategy from '../passport.Strategy/kakao.Strategy.js';
 const authRouter = express();
 
-authRouter.get('/naver', passport.authenticate('naver', { session: false, authType: 'reprompt' }));
+authRouter.get(
+  '/naver',
+  passport.authenticate('naver', { session: false, authType: 'reprompt' })
+);
 
 authRouter.get(
   '/naver/callback',
@@ -25,11 +28,33 @@ authRouter.get(
     res.json({ data });
   }
 );
+authRouter.get('/kakao', kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt' }));
+
+//? 위에서 카카오 서버 로그인이 되면, 카카오 redirect url 설정에 따라 이쪽 라우터로 오게 된다.
+authRouter.get(
+  '/kakao/callback',
+  //? 그리고 passport 로그인 전략에 의해 kakaoStrategy로 가서 카카오계정 정보와 DB를 비교해서 회원가입시키거나 로그인 처리하게 한다.
+  kakaoStrategy.authenticate('kakao', { session: false, failureRedirect: '/' }),
+  // kakaoStrategy에서 성공한다면 콜백 실행
+  (req, res) => {
+    const data = req.user.data;
+    res.json({ data });
+  },
+);
+
+
 
 authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
   try {
-    const { email, password, nickname, oneLiner, imageUrl, emailVerified, provider } = req.body;
-    console.log(req.body)
+    const {
+      email,
+      password,
+      nickname,
+      oneLiner,
+      imageUrl,
+      emailVerified,
+      provider,
+    } = req.body;
     //중복되는 이메일이 있다면 회원가입 실패
     const existedUser = await prisma.user.findUnique({ where: { email } });
     if (existedUser)
@@ -59,7 +84,7 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
         oneLiner,
         imageUrl,
         emailVerified,
-        provider
+        provider,
       },
     });
     return res.status(HTTP_STATUS.CREATED).json({
@@ -77,10 +102,16 @@ authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
     const { email, password } = req.body;
     // 해당 사용자가 없을 시
     const user = await prisma.user.findUnique({ where: { email } });
-    if (!user) return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: MESSAGES.AUTH.COMMON.EMAIL.NOTFOUND });
+    if (!user)
+      return res
+        .status(HTTP_STATUS.UNAUTHORIZED)
+        .json({ message: MESSAGES.AUTH.COMMON.EMAIL.NOTFOUND });
     // 비밀번호 확인
     const userPassword = bcrypt.compareSync(password, user.password);
-    if (!userPassword) return res.status(HTTP_STATUS.UNAUTHORIZED).json({ message: MESSAGES.AUTH.COMMON.PASSWORD.NOTMATCHED });
+    if (!userPassword)
+      return res
+        .status(HTTP_STATUS.UNAUTHORIZED)
+        .json({ message: MESSAGES.AUTH.COMMON.PASSWORD.NOTMATCHED });
     // jwt 생성
     const payload = { id: user.userId };
     const accessToken = await generateAuthTokens(payload);
@@ -88,7 +119,7 @@ authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
       message: MESSAGES.AUTH.SIGN_IN.SUCCEED,
-      data: { accessToken }
+      data: { accessToken },
     });
     next();
   } catch (err) {
@@ -128,7 +159,7 @@ authRouter.delete('/sign-out', requireRefreshToken, async (req, res, next) => {
     status: HTTP_STATUS.OK,
     message: MESSAGES.AUTH.SIGN_OUT.SUCCEED,
     data: { id: user.userId },
-  })
+  });
 });
 /** 이메일 인증 가입 메일 전송 기능 **/
 authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
@@ -136,30 +167,30 @@ authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
     const { email } = req.body;
 
     const userData = await prisma.emailAuthCode.findFirst({
-      where: { email: email }
+      where: { email: email },
     });
 
     const emailCode = generateRandomCode();
-    const expirationAt = new Date()
+    const expirationAt = new Date();
     expirationAt.setMinutes(expirationAt.getMinutes() + 5);
     if (userData) {
       await prisma.emailAuthCode.update({
         where: {
           emailCodeId: userData.emailCodeId,
-          email: userData.email
+          email: userData.email,
         },
         data: {
           emailCode: emailCode,
-          expirationAt: expirationAt
-        }
+          expirationAt: expirationAt,
+        },
       });
     } else {
       await prisma.emailAuthCode.create({
         data: {
           email: email,
           emailCode: emailCode,
-          expirationAt: expirationAt
-        }
+          expirationAt: expirationAt,
+        },
       });
     }
 
@@ -171,8 +202,7 @@ authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
     const mailOptions = {
       to: email,
       subject: '맛집 추천 이메일 인증번호 발송',
-      html:
-        `
+      html: `
       <table cellpadding="0" cellspacing="0" style="border-collapse: collapse; border: none; width: 100%; max-width: 600px; margin: 0 auto;">
       <tr>
         <td style="padding: 20px; text-align: center;">
@@ -194,7 +224,7 @@ authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
         </td>
       </tr>
     </table>
-      `
+      `,
     };
     await transporter.sendMail(mailOptions);
     return res
@@ -211,11 +241,13 @@ authRouter.get('/verify-email/:email/:emailCode', async (req, res, next) => {
     const { email, emailCode } = req.params;
 
     const data = await prisma.emailAuthCode.findFirst({
-      where: { email }
+      where: { email },
     });
 
     if (!data || data.emailCode !== emailCode) {
-      return res.status(400).json({ message: '잘못된 이메일 또는 인증번호입니다.' });
+      return res
+        .status(400)
+        .json({ message: '잘못된 이메일 또는 인증번호입니다.' });
     }
 
     if (data.expirationAt < new Date()) {
@@ -224,9 +256,9 @@ authRouter.get('/verify-email/:email/:emailCode', async (req, res, next) => {
 
     return res.status(200).json({ message: '인증이 성공되었습니다.' });
   } catch (error) {
-    next(error)
+    next(error);
   }
-})
+});
 
 //토큰 생성
 const generateAuthTokens = async (payload) => {
@@ -273,6 +305,6 @@ const generateRandomCode = () => {
     code += String.fromCharCode(randomAscii);
   }
   return code;
-}
+};
 
 export { authRouter, generateAuthTokens };
