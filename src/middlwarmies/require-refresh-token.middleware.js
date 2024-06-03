@@ -19,7 +19,7 @@ export const requireRefreshToken = async (req, res, next) => {
     }
     // JWT 표준 인증 형태와 일치하지 않는 경우
     const [type, refreshToken] = authorization.split(' ');
-
+    console.log(refreshToken)
     if (type !== 'Bearer') {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         status: HTTP_STATUS.UNAUTHORIZED,
@@ -38,6 +38,7 @@ export const requireRefreshToken = async (req, res, next) => {
     let payload;
     try {
       payload = jwt.verify(refreshToken, ENV_KEY.REFRESH_TOKEN_SECRET);
+      console.log(payload)
     } catch (error) {
       // RefreshToken 유효기한이 지난 경우
       if (error.name === 'TokenExpiredError') {

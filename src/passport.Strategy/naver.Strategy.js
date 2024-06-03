@@ -2,7 +2,8 @@ import passport from 'passport';
 import { Strategy as NaverStrategy } from 'passport-naver-v2';
 import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
-import jwt from 'jsonwebtoken';
+import { generateAuthTokens } from '../routers/auth.router.js';
+import jwt from 'jsonwebtoken'
 
 passport.use(
   new NaverStrategy(
@@ -13,6 +14,7 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
+        console.log(profile)
         let user = await prisma.user.findFirst({
           where: { email: profile.email },
         });
@@ -27,27 +29,21 @@ passport.use(
               emailVerified: true,
             },
           });
+
+          const token = await generateAuthTokens({ id: user.userId });
+
+          const data = {
+            userId: user.userId,
+            email: user.email,
+            nickname: user.nickname,
+            imageUrl: user.imageUrl,
+            token: token,
+            createdAt: user.createdAt,
+            updatedAt: user.updatedAt,
+          };
+
+          done(null, { user, data });
         }
-        console.log(user);
-        const token = jwt.sign(
-          { userId: user.id },
-          ENV_KEY.ACCESS_TOKEN_SECRET,
-          {
-            expiresIn: ENV_KEY.ACCESS_TOKEN_EXPIRES_IN,
-          }
-        );
-
-        const data = {
-          userId: user.userId,
-          email: user.email,
-          nickname: user.nickname,
-          imageUrl: user.imageUrl,
-          token: token,
-          createdAt: user.createdAt,
-          updatedAt: user.updatedAt,
-        };
-
-        done(null, { user, data });
       } catch (error) {
         done(error);
       }
