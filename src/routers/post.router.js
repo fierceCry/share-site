@@ -129,7 +129,7 @@ postsRouter.get('/:id', async (req, res, next) => {
     }
       // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
     let comments = await Promise.all(data.Comment.map(async (comment) =>{
-      const commentLikeCount = await prisma.commentLike.count({
+      const commentLikeCount = await prisma.like.count({
         where: {
           commentId: comment.commentId
         }
