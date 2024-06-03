@@ -28,20 +28,24 @@ passport.use(
             },
           });
         }
-        console.log(user)
-        const token = jwt.sign({ userId: user.id }, ENV_KEY.ACCESS_TOKEN_SECRET, {
-          expiresIn: ENV_KEY.ACCESS_TOKEN_EXPIRES_IN,
-        });
+        console.log(user);
+        const token = jwt.sign(
+          { userId: user.id },
+          ENV_KEY.ACCESS_TOKEN_SECRET,
+          {
+            expiresIn: ENV_KEY.ACCESS_TOKEN_EXPIRES_IN,
+          }
+        );
 
         const data = {
           userId: user.userId,
-          email:  user.email,
+          email: user.email,
           nickname: user.nickname,
           imageUrl: user.imageUrl,
           token: token,
           createdAt: user.createdAt,
-          updatedAt: user.updatedAt
-        }
+          updatedAt: user.updatedAt,
+        };
 
         done(null, { user, data });
       } catch (error) {
@@ -51,4 +55,4 @@ passport.use(
   )
 );
 
-export default passport;
+export { passport };
