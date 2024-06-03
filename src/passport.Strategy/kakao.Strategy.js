@@ -1,8 +1,8 @@
 import kakaoStrategy from 'passport';
-import jwt from 'jsonwebtoken';
 import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
 import { Strategy as KakaoStrategy } from 'passport-kakao';
+import { generateAuthTokens } from '../routers/auth.router.js';
 
 kakaoStrategy.use(new KakaoStrategy(
     {
@@ -16,8 +16,9 @@ kakaoStrategy.use(new KakaoStrategy(
             console.log(profile._json.kakao_account.email);
             // console.log(profile.kakao_account["properties"]);
             // 사용자의 정보는 profile에 들어있다.
+            console.log(profile.provider)
             let user = await prisma.user.findFirst({
-                where: { email: profile._json.kakao_account.email },
+                where: { email: profile._json.kakao_account.email},
             });
 
             if (!user) {
@@ -32,10 +33,8 @@ kakaoStrategy.use(new KakaoStrategy(
                     },
                 });
             }
-            console.log(user)
-            const token = jwt.sign({ userId: user.userId }, ENV_KEY.ACCESS_TOKEN_SECRET, {
-                expiresIn: ENV_KEY.ACCESS_TOKEN_EXPIRES_IN,
-            });
+            const token = await generateAuthTokens({ id: user.userId });
+
 
             const data = {
                 userId: user.userId,
