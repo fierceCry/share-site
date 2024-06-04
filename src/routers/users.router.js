@@ -84,14 +84,20 @@ userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
         .json({ error: '수정할 정보를 입력해 주세요.' });
     }
 
-    const existedNickname = await prisma.user.findUnique({
-      where: { nickname },
+    const user = await prisma.user.findUnique({
+      where: { userId: userId },
     });
-    if (existedNickname) {
-      return res.status(HTTP_STATUS.CONFLICT).json({
-        status: HTTP_STATUS.CONFLICT,
-        message: MESSAGES.AUTH.COMMON.NICKNAME.TOO,
+
+    if (nickname !== user.nickname) {
+      const existedNickname = await prisma.user.findUnique({
+        where: { nickname },
       });
+      if (existedNickname) {
+        return res.status(HTTP_STATUS.CONFLICT).json({
+          status: HTTP_STATUS.CONFLICT,
+          message: MESSAGES.AUTH.COMMON.NICKNAME.TOO,
+        });
+      }
     }
 
     const updateData = {};
@@ -183,26 +189,27 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
   }
 });
 
-//프로필 이미지 업로드
 userRouter.post(
   '/profileupload',
   requireAccessToken,
-  profileUpload.single('imageUrl'), //단일 파일만 업로드
+  profileUpload.single('imageUrl'),
   async (req, res) => {
+    console.log(req)
     if (!req.file) {
       return res
         .status(400)
         .json({ message: '이미지를 업로드하지 않았습니다.' });
     }
-
     const userId = req.user.userId;
-    const fileUrl = req.file.location; // 업로드된 파일 URL
-
+    const fileUrl = req.file.location;
+    console.log(userId)
+    console.log(fileUrl)
     const updatedUser = await prisma.user.update({
       where: { userId },
       data: { imageUrl: fileUrl },
     });
-    res.status(200).json({ message: '프로필이 업로드 되었습니다.', fileUrl });
+    console.log(updatedUser)
+    res.status(200).json({ message: '프로필이 업로드 되었습니다.', data: updatedUser.imageUrl });
   }
 );
 
