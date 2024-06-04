@@ -83,7 +83,7 @@ userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
         }
 
         const user = await prisma.user.findUnique({
-          where: { id: userId },
+          where: { userId: userId },
         });
     
         if (nickname !== user.nickname) {
