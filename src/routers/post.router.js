@@ -5,6 +5,7 @@ import { requireAccessToken } from '../middlwarmies/require-access-token.middlew
 import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { POST_MESSAGES } from '../constants/post.constant.js';
 import { postCreateValidator } from '../middlwarmies/validators/src/middlewares/validators/create-post-validator.middleware.js';
+import { postUpload } from '../middlwarmies/S3.middleware.js';
 
 const postsRouter = express();
 
@@ -92,21 +93,21 @@ postsRouter.get('/:id', async (req, res, next) => {
       include: {
         user: {
           select: {
-            nickname: true
-          }
+            nickname: true,
+          },
         },
         Comment: {
           take: 3,
           include: {
             user: {
               select: {
-                nickname: true
-              }
-            }
-          }
-        }
-      }
-    }); 
+                nickname: true,
+              },
+            },
+          },
+        },
+      },
+    });
 
     if (!data) {
       return res
@@ -126,17 +127,18 @@ postsRouter.get('/:id', async (req, res, next) => {
         }
       })
 
-      return {
-        commentId: comment.commentId,
-        userId: comment.userId,
-        postId: comment.postId,
-        comment: comment.comment,
-        createdAt: comment.createdAt,
-        updatedAt: comment.updatedAt,
-        nickname: comment.user.nickname, // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
-        likes: commentLikeCount //댓글 좋아요 수
-      };
-    }));
+        return {
+          commentId: comment.commentId,
+          userId: comment.userId,
+          postId: comment.postId,
+          comment: comment.comment,
+          createdAt: comment.createdAt,
+          updatedAt: comment.updatedAt,
+          nickname: comment.user.nickname, // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
+          likes: commentLikeCount, //댓글 좋아요 수
+        };
+      })
+    );
 
     data = {
       postId: data.postId,
@@ -150,7 +152,7 @@ postsRouter.get('/:id', async (req, res, next) => {
       updatedAt: data.updatedAt,
       comment: comments,
       likes: likeCount,
-      comment: comments
+      comment: comments,
     };
 
     return res
@@ -357,7 +359,7 @@ postsRouter.patch(
       const likeData = await prisma.commentLike.findFirst({
         where: {
           commentId: +commentId,
-          postId :+postId,
+          postId: +postId,
           userId,
         },
       });
@@ -417,8 +419,8 @@ postsRouter.post(
         },
       });
       const data = await prisma.user.findUnique({
-        where : {userId: userId}
-      })
+        where: { userId: userId },
+      });
       const result = {
         comment: commentData.comment,
         commentId: commentData.commentId,
@@ -426,9 +428,9 @@ postsRouter.post(
         updatedAt: commentData.updatedAt,
         postId: commentData.postId,
         userId: commentData.userId,
-        nickname: data.nickname
-      }
-      console.log(result)
+        nickname: data.nickname,
+      };
+      console.log(result);
       return res
         .status(200)
         .json({ message: '댓글 생성이 완료했습니다.', data: result });
@@ -519,12 +521,10 @@ postsRouter.patch(
           comment: comment,
         },
       });
-      return res
-        .status(200)
-        .json({
-          message: '댓글이 성공적으로 수정되었습니다.',
-          data: updatedComment,
-        });
+      return res.status(200).json({
+        message: '댓글이 성공적으로 수정되었습니다.',
+        data: updatedComment,
+      });
     } catch (error) {
       next(error);
     }
@@ -542,7 +542,7 @@ postsRouter.delete(
       const data = await prisma.comment.findFirst({
         where: {
           commentId: +commentId,
-          postId: +postId        
+          postId: +postId,
         },
       });
 
@@ -562,15 +562,32 @@ postsRouter.delete(
           userId: userId,
         },
       });
-      return res
-        .status(200)
-        .json({
-          message: '댓글이 성공적으로 삭제되었습니다.',
-          data: deleteComment,
-        });
+      return res.status(200).json({
+        message: '댓글이 성공적으로 삭제되었습니다.',
+        data: deleteComment,
+      });
     } catch (error) {
       next(error);
     }
+  }
+);
+
+// //게시글 이미지 업로드
+postsRouter.post(
+  '/uploadtest',
+  requireAccessToken,
+  // postCreateValidator,
+  postUpload.array('image', 10), // 여러 파일 업로드 가능
+  async (req, res) => {
+    const fileUrls = req.files.map((file) => file.location); // 업로드된 파일의 URL 가져오기
+    const fileUrlsJson = {
+      imageUrl: JSON.stringify(fileUrls), // URL을 JSON 형식으로 변환하여 저장 / 해당 변수를 imagUrl 칸에 넣기.
+    };
+
+    res.status(200).json({
+      message: '파일이 업로드 되었습니다.',
+      data: fileUrlsJson,
+    });
   }
 );
 
