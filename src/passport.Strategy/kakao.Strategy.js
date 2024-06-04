@@ -12,9 +12,6 @@ kakaoStrategy.use(new KakaoStrategy(
     },
     async (accessToken, refreshToken, profile, done) => {
         try {
-            console.log(profile);
-            console.log(profile._json.kakao_account.email);
-            // console.log(profile.kakao_account["properties"]);
             // 사용자의 정보는 profile에 들어있다.
             console.log(profile.provider)
             let user = await prisma.user.findFirst({
