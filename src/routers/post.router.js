@@ -608,7 +608,6 @@ postsRouter.delete(
   }
 );
 
-<<<<<<< HEAD
 // //게시글 이미지 업로드
 postsRouter.post(
   '/uploadtest',
@@ -628,7 +627,6 @@ postsRouter.post(
   }
 );
 
-=======
 /** 카테고리 별 목록조회**/
 postsRouter.get(
   '/category/:categoryId',
@@ -680,5 +678,4 @@ postsRouter.get(
 );
 
 
->>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 export { postsRouter };
