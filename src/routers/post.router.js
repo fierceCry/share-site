@@ -83,18 +83,10 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
 postsRouter.get('/:id', async (req, res, next) => {
   try {
     const { id: postId } = req.params;
-<<<<<<< HEAD
-    console.log(postId);
-    const likeCount = await prisma.like.count({
-      where: {
-        postId: Number(postId),
-      },
-=======
     const likeCount = await prisma.like.count({
       where:{
         postId: +postId,
       }
->>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
     });
     let data = await prisma.post.findUnique({
       where: { postId: +postId },
@@ -118,24 +110,6 @@ postsRouter.get('/:id', async (req, res, next) => {
     });
 
     if (!data) {
-<<<<<<< HEAD
-      return res.status(HTTP_STATUS.NOT_FOUND).json({
-        status: HTTP_STATUS.NOT_FOUND,
-        message: POST_MESSAGES.POST_NOT_FOUND,
-        data,
-      });
-    }
-    // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
-    let comments = await Promise.all(
-      data.Comment.map(async (comment) => {
-        const { commentId } = req.params;
-        console.log({ commentId });
-        const commentLikeCount = await prisma.like.count({
-          where: {
-            commentId: commentId,
-          },
-        });
-=======
       return res
         .status(HTTP_STATUS.NOT_FOUND)
         .json({
@@ -152,7 +126,6 @@ postsRouter.get('/:id', async (req, res, next) => {
           commentId: commentId
         }
       })
->>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 
         return {
           commentId: comment.commentId,
@@ -181,14 +154,6 @@ postsRouter.get('/:id', async (req, res, next) => {
       likes: likeCount,
       comment: comments,
     };
-<<<<<<< HEAD
-    console.log(data);
-    return res.status(HTTP_STATUS.OK).json({
-      status: HTTP_STATUS.OK,
-      message: POST_MESSAGES.POST_DETAIL,
-      data,
-    });
-=======
 
     return res
       .status(HTTP_STATUS.OK)
@@ -197,7 +162,6 @@ postsRouter.get('/:id', async (req, res, next) => {
         message: POST_MESSAGES.POST_DETAIL,
         data,
       });
->>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
   } catch (error) {
     next(error);
   }
@@ -608,7 +572,6 @@ postsRouter.delete(
   }
 );
 
-<<<<<<< HEAD
 // //게시글 이미지 업로드
 postsRouter.post(
   '/uploadtest',
@@ -628,7 +591,6 @@ postsRouter.post(
   }
 );
 
-=======
 /** 카테고리 별 목록조회**/
 postsRouter.get(
   '/category/:categoryId',
@@ -680,5 +642,4 @@ postsRouter.get(
 );
 
 
->>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 export { postsRouter };

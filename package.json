@@ -10,12 +10,8 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
-<<<<<<< HEAD
     "@aws-sdk/client-s3": "^3.588.0",
     "@prisma/client": "^5.14.0",
-=======
-    "@prisma/client": "^5.13.0",
->>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
     "@types/nodemailer": "^6.4.15",
     "aws-sdk": "^2.1632.0",
     "bcrypt": "^5.1.1",
