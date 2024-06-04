@@ -15,11 +15,13 @@ import { requireRefreshToken } from '../middlwarmies/require-refresh-token.middl
 import kakaoStrategy from '../passport.Strategy/kakao.Strategy.js';
 const authRouter = express();
 
+/** 네이버 로그인 뱃지 **/
 authRouter.get(
   '/naver',
-  passport.authenticate('naver', { session: false})
+  passport.authenticate('naver', { session: false, authType: 'reprompt' })
 );
 
+/** 네이버 로그인 리다이렉트 **/
 authRouter.get(
   '/naver/callback',
   passport.authenticate('naver', { session: false, failureRedirect: '/main' }),
@@ -29,14 +31,14 @@ authRouter.get(
     res.redirect(`http://127.0.0.1:3000/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`);
   }
 );
+
+/** 카카오 로그인 뱃지 **/
 authRouter.get('/kakao', kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt' }));
 
-//? 위에서 카카오 서버 로그인이 되면, 카카오 redirect url 설정에 따라 이쪽 라우터로 오게 된다.
+/** 카카오 로그인 리다이렉트 **/
 authRouter.get(
   '/kakao/callback',
-  //? 그리고 passport 로그인 전략에 의해 kakaoStrategy로 가서 카카오계정 정보와 DB를 비교해서 회원가입시키거나 로그인 처리하게 한다.
-  kakaoStrategy.authenticate('kakao', { session: false, failureRedirect: '/main' }),
-  // kakaoStrategy에서 성공한다면 콜백 실행
+  kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt'}),
   (req, res) => {
     const accessToken = req.user.data.token.accessToken
     const refreshToken = req.user.data.token.refreshToken
@@ -44,6 +46,7 @@ authRouter.get(
   },
 );
 
+/** 일반 회원가입 **/
 authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
   try {
     const {
@@ -55,15 +58,15 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
       emailVerified,
       provider,
     } = req.body;
-    //중복되는 이메일이 있다면 회원가입 실패
+
     const existedUser = await prisma.user.findUnique({ where: { email} });
-    console.log(existedUser)
+  
     if (existedUser)
       return res.status(HTTP_STATUS.CONFLICT).json({
         status: HTTP_STATUS.CONFLICT,
         message: MESSAGES.AUTH.COMMON.EMAIL.TOO,
       });
-    //중복되는 닉네임이 있다면 회원가입 실패
+
     const existedNickname = await prisma.user.findUnique({
       where: { nickname },
     });
@@ -72,7 +75,7 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
         status: HTTP_STATUS.CONFLICT,
         message: MESSAGES.AUTH.COMMON.NICKNAME.TOO,
       });
-    // 데이터 생성
+
     const hashedPassword = bcrypt.hashSync(
       password,
       authConstant.HASH_SALT_ROUNDS
@@ -93,43 +96,42 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
       message: MESSAGES.AUTH.SIGN_UP.SUCCEED,
       data: result,
     });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 });
 
+/** 일반 로그인 **/
 authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
   try {
     const { email, password, provider } = req.body;
-    // 해당 사용자가 없을 시
+
     const user = await prisma.user.findUnique({ where: { email, provider} });
     if (!user)
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
         .json({ message: MESSAGES.AUTH.COMMON.EMAIL.NOTFOUND });
-    // 비밀번호 확인
+
     const userPassword = bcrypt.compareSync(password, user.password);
     if (!userPassword)
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
         .json({ message: MESSAGES.AUTH.COMMON.PASSWORD.NOTMATCHED });
-    // jwt 생성
-    const payload = { id: user.userId };
-    const accessToken = await generateAuthTokens(payload);
+
+    const accessToken = await generateAuthTokens({ id: user.userId });
 
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
       message: MESSAGES.AUTH.SIGN_IN.SUCCEED,
       data: { accessToken },
     });
-    next();
-  } catch (err) {
+  } catch (error) {
     next(err);
   }
 });
 
 
-// 토큰 재발금
+/** 토큰 재발급 **/
 authRouter.post('/token', requireRefreshToken, async (req, res, next) => {
   try {
     const user = req.user;
@@ -140,17 +142,16 @@ authRouter.post('/token', requireRefreshToken, async (req, res, next) => {
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
       message: MESSAGES.AUTH.TOKEN.SUCCEED,
-      data,
+      data: data,
     });
   } catch (error) {
     next(error);
   }
 });
 
-// 로그아웃
+/** 로그아웃 **/
 authRouter.delete('/sign-out', requireRefreshToken, async (req, res, next) => {
   const user = req.user;
-  console.log(user)
   await prisma.refreshToken.update({
     where: { userId: user.userId },
     data: {
@@ -163,6 +164,7 @@ authRouter.delete('/sign-out', requireRefreshToken, async (req, res, next) => {
     data: { id: user.userId },
   });
 });
+
 /** 이메일 인증 가입 메일 전송 기능 **/
 authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
   try {
@@ -269,7 +271,7 @@ authRouter.get('/verify-email/:email/:emailCode', async (req, res, next) => {
   }
 });
 
-//토큰 생성
+/** 토큰 생성 함수 **/
 const generateAuthTokens = async (payload) => {
   const userId = payload.id;
   const accessToken = jwt.sign(payload, ENV_KEY.ACCESS_TOKEN_SECRET, {

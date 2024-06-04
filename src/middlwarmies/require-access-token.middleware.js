@@ -4,18 +4,19 @@ import { MESSAGES } from '../constants/message.constant.js';
 import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
 
+/** JWT 인증 미들웨어 **/
 export const requireAccessToken = async (req, res, next) => {
   try {
-    // 인증 정보 파싱
     const authorization = req.headers.authorization;
-    // Authorization이 없는 경우
+
+    /** Authorization이 없는 경우 **/
     if (!authorization) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         status: HTTP_STATUS.UNAUTHORIZED,
         message: MESSAGES.AUTH.COMMON.JWT.NO_TOKEN,
       });
     }
-    // JWT 표준 인증 형태와 일치하지 않는 경우
+    /** JWT 표준 인증 형태와 일치하지 않는 경우 **/
     const [type, accessToken] = authorization.split(' ');
 
     if (type !== 'Bearer') {
@@ -25,7 +26,7 @@ export const requireAccessToken = async (req, res, next) => {
       });
     }
 
-    // AccessToken이 없는 경우
+    /** AccessToken이 없는 경우 **/
     if (!accessToken) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         status: HTTP_STATUS.UNAUTHORIZED,
@@ -44,7 +45,7 @@ export const requireAccessToken = async (req, res, next) => {
           message: MESSAGES.AUTH.COMMON.JWT.EXPIRED,
         });
       }
-      // 그 밖의 AccessToken 검증에 실패한 경우
+      /** 그 밖의 AccessToken 검증에 실패한 경우 **/
       else {
         return res.status(HTTP_STATUS.UNAUTHORIZED).json({
           status: HTTP_STATUS.UNAUTHORIZED,
@@ -53,12 +54,10 @@ export const requireAccessToken = async (req, res, next) => {
       }
     }
 
-    // Payload에 담긴 사용자 ID와 일치하는 사용자가 없는 경우
+    /** Payload에 담긴 사용자 ID와 일치하는 사용자가 없는 경우 **/
     const { id } = payload;
-    console.log(id);
     const user = await prisma.user.findUnique({
       where: { userId: id },
-      // omit: { password: true },
     });
 
     if (!user) {

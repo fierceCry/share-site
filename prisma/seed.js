@@ -2,6 +2,20 @@ import { PrismaClient } from '@prisma/client';
 const prisma = new PrismaClient();
 
 const main = async () => {
+  // 회원 정보 추가
+  await prisma.user.create({
+    data: {
+      nickname: 'example_user',
+      email: 'example@example.com',
+      password: 'password123',
+      imageUrl: 'https://nyjtkd.net/common/img/default_profile.png',
+      oneLiner: '한줄 소개',
+      provider: 'local',
+      emailVerified: true
+    },
+  });
+  console.log('유저 생성 완료:');
+
   const categories = [
     { regionName: '수도권' },
     { regionName: '충청권' },
@@ -117,6 +131,7 @@ const main = async () => {
     }
   
     console.log('Posts seed 완료');
+
 };
 
 main()

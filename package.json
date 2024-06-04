@@ -10,7 +10,7 @@
     "seed": "node prisma/seed.js"
   },
   "dependencies": {
-    "@prisma/client": "^5.14.0",
+    "@prisma/client": "^5.13.0",
     "@types/nodemailer": "^6.4.15",
     "bcrypt": "^5.1.1",
     "cors": "^2.8.5",
@@ -22,7 +22,7 @@
     "passport": "^0.7.0",
     "passport-kakao": "^1.0.1",
     "passport-naver-v2": "^2.0.8",
-    "prisma": "^5.14.0",
+    "prisma": "^5.13.0",
     "winston": "^3.13.0"
   },
   "devDependencies": {
