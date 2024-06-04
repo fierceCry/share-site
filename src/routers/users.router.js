@@ -186,5 +186,41 @@ userRouter.patch('/follows/:userId', requireAccessToken, async(req, res, next)=>
         next(err)
     }
 })
+//팔로우한 사람 게시글 조회
+userRouter.get('/follows/:id',requireAccessToken, async(req, res, next)=>{
+    try{
+        const {id: userId} = req.params
+        console.log('test',userId)
+        if(!userId){
+            return res.status(HTTP_STATUS.NOT_FOUND).json({status:HTTP_STATUS.NOT_FOUND,message:'사용자를 찾을 수 없습니다'})
+        }
+        
+       // const {id: followerId} = req.params;
+        const following = await prisma.follows.findMany({
+            where:{ followerId: +userId },
+            select:{ followedId: true}
+        });
+        const followedIds = following.map(data => data.followedId)
+
+        const posts = await prisma.post.findMany({
+            where:{
+                userId:{
+                    in: followedIds
+                }
+            },
+            orderBy:{
+                createdAt: 'desc'
+            },
+            include:{
+                user: true
+            }
+        })
+        res.json(posts)
+        }
+
+     catch(err) {
+        next()
+    }
+})
 
 export { userRouter };

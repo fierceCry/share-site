@@ -56,7 +56,7 @@ export const requireAccessToken = async (req, res, next) => {
 
     // Payload에 담긴 사용자 ID와 일치하는 사용자가 없는 경우
     const { id } = payload;
-    console.log(id);
+    //console.log(id);
     const user = await prisma.user.findUnique({
       where: { userId: id },
       // omit: { password: true },
@@ -68,7 +68,7 @@ export const requireAccessToken = async (req, res, next) => {
         message: MESSAGES.AUTH.COMMON.JWT.NO_USER,
       });
     }
-
+    console.log(user)
     req.user = user;
     next();
   } catch (error) {
