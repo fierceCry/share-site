@@ -564,13 +564,20 @@ postsRouter.delete(
 
 // //게시글 이미지 업로드
 postsRouter.post(
-  '/upload',
+  '/uploadtest',
   requireAccessToken,
   // postCreateValidator,
-  postUpload.array('imageUrl'), // 여러 파일 업로드 가능
+  postUpload.array('image', 10), // 여러 파일 업로드 가능
   async (req, res) => {
-    const fileNames = req.fileNames; //req.fileNames는 배열
-    res.status(200).json({ message: '게시글이 업로드 되었습니다.', fileNames });
+    const fileUrls = req.files.map((file) => file.location); // 업로드된 파일의 URL 가져오기
+    const fileUrlsJson = {
+      imageUrl: JSON.stringify(fileUrls), // URL을 JSON 형식으로 변환하여 저장 / 해당 변수를 imagUrl 칸에 넣기.
+    };
+
+    res.status(200).json({
+      message: '파일이 업로드 되었습니다.',
+      data: fileUrlsJson,
+    });
   }
 );
 

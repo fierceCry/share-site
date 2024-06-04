@@ -13,7 +13,7 @@ const s3 = new AWS.S3({
 });
 
 // 프로필 S3
-const frofileUpload = multer({
+const profileUpload = multer({
   storage: multerS3({
     s3: s3,
     bucket: process.env.AWS_S3_BUCKET,
@@ -21,10 +21,6 @@ const frofileUpload = multer({
     key: (req, file, callback) => {
       const ext = path.extname(file.originalname);
       const fileName = `${Date.now().toString()}${ext}`;
-      if (!req.fileNames) {
-        req.fileNames = [];
-      }
-      req.fileNames.push(fileName);
       callback(null, `share-site2-frofile/${fileName}`);
     },
     acl: 'public-read',
@@ -43,10 +39,6 @@ const postUpload = multer({
     key: (req, file, callback) => {
       const ext = path.extname(file.originalname);
       const fileName = `${Date.now().toString()}${ext}`;
-      if (!req.fileNames) {
-        req.fileNames = [];
-      }
-      req.fileNames.push(fileName); // req.fileNames 호출 시 배열로 호출
       callback(null, `share-site2-posts/${fileName}`);
     },
     acl: 'public-read',
@@ -56,4 +48,4 @@ const postUpload = multer({
   },
 });
 
-export { frofileUpload, postUpload };
+export { profileUpload, postUpload };

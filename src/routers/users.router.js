@@ -5,7 +5,7 @@ import { prisma } from '../utils/prisma.utils.js';
 import { MESSAGES } from '../constants/message.constant.js';
 import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { authConstant } from '../constants/auth.constant.js';
-import { frofileUpload } from '../middlwarmies/S3.middleware.js';
+import { profileUpload } from '../middlwarmies/S3.middleware.js';
 
 const userRouter = express.Router();
 
@@ -151,12 +151,24 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
 
 //프로필 이미지 업로드
 userRouter.post(
-  '/upload',
+  '/profileupload',
   requireAccessToken,
-  frofileUpload.single('imageUrl'), //단일 파일만 업로드
+  profileUpload.single('imageUrl'), //단일 파일만 업로드
   async (req, res) => {
-    const fileNames = req.fileNames; //req.fileNames는 배열
-    res.status(200).json({ message: '게시글이 업로드 되었습니다.', fileNames });
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ message: '이미지를 업로드하지 않았습니다.' });
+    }
+
+    const userId = req.user.userId;
+    const fileUrl = req.file.location; // 업로드된 파일 URL
+
+    const updatedUser = await prisma.user.update({
+      where: { userId },
+      data: { imageUrl: fileUrl },
+    });
+    res.status(200).json({ message: '프로필이 업로드 되었습니다.', fileUrl });
   }
 );
 
