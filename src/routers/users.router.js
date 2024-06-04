@@ -5,6 +5,7 @@ import { prisma } from '../utils/prisma.utils.js';
 import { MESSAGES } from '../constants/message.constant.js';
 import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { authConstant } from '../constants/auth.constant.js';
+import { profileUpload } from '../middlwarmies/S3.middleware.js'
 
 const userRouter = express.Router();
 
@@ -81,14 +82,20 @@ userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
             return res.status(HTTP_STATUS.UNAUTHORIZED).json({ error: '수정할 정보를 입력해 주세요.' });
         }
 
-        const existedNickname = await prisma.user.findUnique({
-            where: { nickname },
+        const user = await prisma.user.findUnique({
+          where: { id: userId },
         });
-        if (existedNickname) {
+    
+        if (nickname !== user.nickname) {
+          const existedNickname = await prisma.user.findUnique({
+            where: { nickname },
+          });
+          if (existedNickname) {
             return res.status(HTTP_STATUS.CONFLICT).json({
-                status: HTTP_STATUS.CONFLICT,
-                message: MESSAGES.AUTH.COMMON.NICKNAME.TOO,
+              status: HTTP_STATUS.CONFLICT,
+              message: MESSAGES.AUTH.COMMON.NICKNAME.TOO,
             });
+          }
         }
 
         const updateData = {};
