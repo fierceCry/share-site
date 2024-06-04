@@ -122,5 +122,91 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
         next(err);
     }
 });
+//팔로우
+userRouter.post('/follows/:userId', requireAccessToken, async(req, res, next)=>{
+    console.log(requireAccessToken)
+    try {
+        const {userId} = req.params
+        const currentUserId = req.user.userId
+        const user = await prisma.user.findUnique({
+        where:{
+            userId: Number(userId)
+        }
+    });
+        if(user){
+            await prisma.follows.create({
+                data:{
+                    followerId: currentUserId,
+                    followedId: Number(userId)
+                }
+            })
+            //await user.addFollowing(parseInt(req.params.userId, 10))
+        return res.status(HTTP_STATUS.CREATED).json({status:HTTP_STATUS.CREATED,message:'팔로우 성공했습니다.'})
+    } else {
+        res.status(HTTP_STATUS.NOT_FOUND).json({status:HTTP_STATUS.NOT_FOUND})
+    }
+} catch(err) {
+    next(err)
+}
+})
+//언팔로우
+userRouter.patch('/follows/:userId', requireAccessToken, async(req, res, next)=>{
+    try{
+        const {userId} = req.params
+        const currentUserId =req.user.userId
+        const user = await prisma.user.findUnique({
+            where : { userId: Number(userId)}
+        })
+        if(user){
+            await prisma.follows.deleteMany({
+                where:{
+                    followerId: currentUserId,
+                    followedId: Number(userId)
+                }
+            })
+            //await user.removeFollower(parseInt(req.params.userId))
+            return res.status(HTTP_STATUS.OK).json({status:HTTP_STATUS.CREATED,message:'팔로우 취소했습니다.'})
+        } else {
+            res.status(HTTP_STATUS.NOT_FOUND).json({status:HTTP_STATUS.NOT_FOUND})}
+    } catch(err) {
+        next(err)
+    }
+})
+//팔로우한 사람 게시글 조회
+userRouter.get('/follows/:id',requireAccessToken, async(req, res, next)=>{
+    try{
+        const {id: userId} = req.params
+        
+        if(!userId){
+            return res.status(HTTP_STATUS.NOT_FOUND).json({status:HTTP_STATUS.NOT_FOUND,message:'사용자를 찾을 수 없습니다'})
+        }
+        
+       // const {id: followerId} = req.params;
+        const following = await prisma.follows.findMany({
+            where:{ followerId: +userId },
+            select:{ followedId: true}
+        });
+        const followedIds = following.map(data => data.followedId)
+
+        const posts = await prisma.post.findMany({
+            where:{
+                userId:{
+                    in: followedIds
+                }
+            },
+            orderBy:{
+                createdAt: 'desc'
+            },
+            include:{
+                user: true
+            }
+        })
+        res.json(posts)
+        }
+
+     catch(err) {
+        next()
+    }
+})
 
 export { userRouter };
