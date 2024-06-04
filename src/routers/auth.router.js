@@ -26,24 +26,44 @@ authRouter.get(
   '/naver/callback',
   passport.authenticate('naver', { session: false, failureRedirect: '/main' }),
   (req, res) => {
-    const accessToken = req.user.data.token.accessToken
-    const refreshToken = req.user.data.token.refreshToken
-    res.redirect(`http://127.0.0.1:3000/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`);
+    const accessToken = req.user.data.token.accessToken;
+    const refreshToken = req.user.data.token.refreshToken;
+    res.redirect(
+      `http://127.0.0.1:3000/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
+    );
   }
 );
+<<<<<<< HEAD
+authRouter.get(
+  '/kakao',
+  kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt' })
+);
+=======
 
 /** 카카오 로그인 뱃지 **/
 authRouter.get('/kakao', kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt' }));
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 
 /** 카카오 로그인 리다이렉트 **/
 authRouter.get(
   '/kakao/callback',
+<<<<<<< HEAD
+  //? 그리고 passport 로그인 전략에 의해 kakaoStrategy로 가서 카카오계정 정보와 DB를 비교해서 회원가입시키거나 로그인 처리하게 한다.
+  kakaoStrategy.authenticate('kakao', {
+    session: false,
+    failureRedirect: '/main',
+  }),
+  // kakaoStrategy에서 성공한다면 콜백 실행
+=======
   kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt'}),
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
   (req, res) => {
-    const accessToken = req.user.data.token.accessToken
-    const refreshToken = req.user.data.token.refreshToken
-    res.redirect(`http://127.0.0.1:3000/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`);
-  },
+    const accessToken = req.user.data.token.accessToken;
+    const refreshToken = req.user.data.token.refreshToken;
+    res.redirect(
+      `http://127.0.0.1:3000/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
+    );
+  }
 );
 
 /** 일반 회원가입 **/
@@ -58,9 +78,14 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
       emailVerified,
       provider,
     } = req.body;
+<<<<<<< HEAD
+    //중복되는 이메일이 있다면 회원가입 실패
+    const existedUser = await prisma.user.findUnique({ where: { email } });
+=======
 
     const existedUser = await prisma.user.findUnique({ where: { email} });
   
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
     if (existedUser)
       return res.status(HTTP_STATUS.CONFLICT).json({
         status: HTTP_STATUS.CONFLICT,
@@ -104,9 +129,15 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
 /** 일반 로그인 **/
 authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
   try {
+<<<<<<< HEAD
+    const { email, password } = req.body;
+    // 해당 사용자가 없을 시
+    const user = await prisma.user.findUnique({ where: { email } });
+=======
     const { email, password, provider } = req.body;
 
     const user = await prisma.user.findUnique({ where: { email, provider} });
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
     if (!user)
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
@@ -130,8 +161,12 @@ authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
   }
 });
 
+<<<<<<< HEAD
+// 토큰 재발금
+=======
 
 /** 토큰 재발급 **/
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 authRouter.post('/token', requireRefreshToken, async (req, res, next) => {
   try {
     const user = req.user;
@@ -152,6 +187,10 @@ authRouter.post('/token', requireRefreshToken, async (req, res, next) => {
 /** 로그아웃 **/
 authRouter.delete('/sign-out', requireRefreshToken, async (req, res, next) => {
   const user = req.user;
+<<<<<<< HEAD
+  console.log(user);
+=======
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
   await prisma.refreshToken.update({
     where: { userId: user.userId },
     data: {
@@ -275,27 +314,30 @@ authRouter.get('/verify-email/:email/:emailCode', async (req, res, next) => {
 const generateAuthTokens = async (payload) => {
   const userId = payload.id;
   const accessToken = jwt.sign(payload, ENV_KEY.ACCESS_TOKEN_SECRET, {
-      expiresIn: '12h',
+    expiresIn: '12h',
   });
-  console.log(accessToken)
+  console.log(accessToken);
   const refreshToken = jwt.sign(payload, ENV_KEY.REFRESH_TOKEN_SECRET, {
-      expiresIn: '7d',
+    expiresIn: '7d',
   });
-  console.log(refreshToken)
-  const hashedRefreshToken = bcrypt.hashSync(refreshToken, authConstant.HASH_SALT_ROUNDS);
+  console.log(refreshToken);
+  const hashedRefreshToken = bcrypt.hashSync(
+    refreshToken,
+    authConstant.HASH_SALT_ROUNDS
+  );
 
   // RefreshToken을 갱신 ( 없을경우 생성 )
   await prisma.refreshToken.upsert({
-      where: {
-          userId,
-      },
-      update: {
-          refreshToken: hashedRefreshToken,
-      },
-      create: {
-          userId,
-          refreshToken: hashedRefreshToken,
-      },
+    where: {
+      userId,
+    },
+    update: {
+      refreshToken: hashedRefreshToken,
+    },
+    create: {
+      userId,
+      refreshToken: hashedRefreshToken,
+    },
   });
 
   return { accessToken, refreshToken };
