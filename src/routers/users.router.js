@@ -12,53 +12,65 @@ userRouter.get('/my', requireAccessToken, async (req, res, next) => {
   try {
     const { userId } = req.user;
     const userProfile = await prisma.user.findUnique({
-        where: { userId: +userId },
-        select: {
-          userId: true,
-          email: true,
-          nickname: true,
-          oneLiner: true,
-          imageUrl: true,
-          createdAt: true,
-          updatedAt: true,
-          posts: {
-            select: {
-              postId: true,
-              title: true,
-              content: true,
-              imageUrl: true,
-              createdAt: true,
-              updatedAt: true
-            }
-          }
-        }
-      });
-      
+      where: { userId: +userId },
+      select: {
+        userId: true,
+        email: true,
+        nickname: true,
+        oneLiner: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        posts: {
+          select: {
+            postId: true,
+            title: true,
+            content: true,
+            imageUrl: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
+
     if (!userProfile) {
       return res
         .status(HTTP_STATUS.NOT_FOUND)
         .json({ error: '사용자의 프로필을 찾을 수 없습니다.' });
     }
 
-    const formattedPosts = userProfile.posts.map(post => ({
-        postId: post.postId,
-        title: post.title,
-        content: post.content,
-        imageUrl: post.imageUrl,
-        createdAt: post.createdAt,
-        updatedAt: post.updatedAt
-      })); 
-      return res.status(HTTP_STATUS.OK).json({
-        status: HTTP_STATUS.OK,
-        userProfile: {
-          ...userProfile,
-          posts: formattedPosts
-        }
-      });
-    } catch (err) {
-      next(err);
-    }
-  });
+    // 팔로우 수와 팔로워 수를 카운트
+    const followerCount = await prisma.follows.count({
+      where: { followedId: +userId },
+    });
+
+    const followingCount = await prisma.follows.count({
+      where: { followerId: +userId },
+    });
+
+    const formattedPosts = userProfile.posts.map((post) => ({
+      postId: post.postId,
+      title: post.title,
+      content: post.content,
+      imageUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+    }));
+
+    return res.status(HTTP_STATUS.OK).json({
+      status: HTTP_STATUS.OK,
+      userProfile: {
+        ...userProfile,
+        posts: formattedPosts,
+        followerCount,
+        followingCount,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
   try {
