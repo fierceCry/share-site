@@ -3,7 +3,6 @@ import { Strategy as NaverStrategy } from 'passport-naver-v2';
 import { ENV_KEY } from '../constants/env.constant.js';
 import { prisma } from '../utils/prisma.utils.js';
 import { generateAuthTokens } from '../routers/auth.router.js';
-import jwt from 'jsonwebtoken'
 
 passport.use(
   new NaverStrategy(
@@ -14,13 +13,15 @@ passport.use(
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
-        console.log(profile)
-        let user = await prisma.user.findFirst({
+        console.log('Received profile:', profile);
+
+        const user = await prisma.user.findFirst({
           where: { email: profile.email },
         });
 
         if (!user) {
-          user = await prisma.user.create({
+          console.log('Creating new user with email:', profile.email);
+          const newUser = await prisma.user.create({
             data: {
               email: profile.email,
               nickname: profile.nickname,
@@ -30,22 +31,41 @@ passport.use(
             },
           });
 
-          const token = await generateAuthTokens({ id: user.userId });
+          console.log('New user created:', newUser);
+          const token = await generateAuthTokens({ id: newUser.userId });
+          console.log('Generated token for new user:', token);
 
           const data = {
-            userId: user.userId,
-            email: user.email,
-            nickname: user.nickname,
-            imageUrl: user.imageUrl,
+            userId: newUser.userId,
+            email: newUser.email,
+            nickname: newUser.nickname,
+            imageUrl: newUser.imageUrl,
             token: token,
-            createdAt: user.createdAt,
-            updatedAt: user.updatedAt,
+            createdAt: newUser.createdAt,
+            updatedAt: newUser.updatedAt,
           };
 
-          done(null, { user, data });
+          return done(null, { user: newUser, data });
         }
+
+        console.log('Existing user found:', user);
+        const token = await generateAuthTokens({ id: user.userId });
+        console.log('Generated token for existing user:', token);
+
+        const data = {
+          userId: user.userId,
+          email: user.email,
+          nickname: user.nickname,
+          imageUrl: user.imageUrl,
+          token: token,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        };
+
+        return done(null, { user, data });
       } catch (error) {
-        done(error);
+        console.error('Error in NaverStrategy:', error);
+        return done(error);
       }
     }
   )

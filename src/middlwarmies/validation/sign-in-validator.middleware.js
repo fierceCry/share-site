@@ -9,6 +9,9 @@ const schema = Joi.object({
   password: Joi.string().required().messages({
     'any.required': MESSAGES.AUTH.COMMON.PASSWORD.REQUIRED,
   }),
+  provider: Joi.string().required().messages({
+    'any.required': MESSAGES.AUTH.COMMON.PASSWORD.REQUIRED,
+  }),
 });
 
 export const signinValidator = async (req, res, next) => {

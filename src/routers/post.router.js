@@ -8,7 +8,8 @@ import { postCreateValidator } from '../middlwarmies/validators/src/middlewares/
 import { postUpload } from '../middlwarmies/S3.middleware.js';
 
 const postsRouter = express();
-//게시글 생성
+
+/** 게시글 생성 **/
 postsRouter.post(
   '/posts',
   requireAccessToken,
@@ -16,22 +17,21 @@ postsRouter.post(
   async (req, res, next) => {
     try {
       const { userId } = req.user;
-      const { title, content, regionid, imageUrl } = req.body;
+      const { title, content, regionId, imageUrl } = req.body;
 
       const data = await prisma.post.create({
         data: {
           userId: userId,
           title,
           content,
-          regionid,
+          regionId,
           imageUrl,
         },
       });
-
       return res.status(HTTP_STATUS.CREATED).json({
         status: HTTP_STATUS.CREATED,
         message: POST_MESSAGES.POST_CREATE,
-        data,
+        data : data,
       });
     } catch (error) {
       next(error);
@@ -39,12 +39,9 @@ postsRouter.post(
   }
 );
 
-//게시글 목록 조회
+/** 게시글 목록 조회 **/
 postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
   try {
-    const { userId } = req.user;
-    //const postId = userId;
-    //정렬
     let { sort } = req.query;
 
     sort = sort?.toLowerCase();
@@ -61,6 +58,7 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
         user: true,
       },
     });
+
     data = data.map((post) => {
       return {
         postId: post.postId,
@@ -68,32 +66,38 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
         content: post.content,
         regionId: post.regionId,
         imageUrl: post.imageUrl,
+        nickname: post.user.nickname,
         createdAt: post.createdAt,
         updatedAt: post.updatedAt,
       };
     });
     return res
       .status(HTTP_STATUS.OK)
-      .json({ status: HTTP_STATUS.OK, message: POST_MESSAGES.POST_LIST, data });
+      .json({ status: HTTP_STATUS.OK, message: POST_MESSAGES.POST_LIST, data: data });
   } catch (error) {
     next(error);
   }
 });
-//게시글 상세 조회
+
+/** 게시글 상세 조회 **/
 postsRouter.get('/:id', async (req, res, next) => {
   try {
-    //const {userId} = req.user;
-    //const  userId = user.userId;
-
     const { id: postId } = req.params;
+<<<<<<< HEAD
     console.log(postId);
     const likeCount = await prisma.like.count({
       where: {
         postId: Number(postId),
       },
+=======
+    const likeCount = await prisma.like.count({
+      where:{
+        postId: +postId,
+      }
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
     });
     let data = await prisma.post.findUnique({
-      where: { postId: Number(postId) },
+      where: { postId: +postId },
       include: {
         user: {
           select: {
@@ -114,6 +118,7 @@ postsRouter.get('/:id', async (req, res, next) => {
     });
 
     if (!data) {
+<<<<<<< HEAD
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         status: HTTP_STATUS.NOT_FOUND,
         message: POST_MESSAGES.POST_NOT_FOUND,
@@ -130,6 +135,24 @@ postsRouter.get('/:id', async (req, res, next) => {
             commentId: commentId,
           },
         });
+=======
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({
+          status: HTTP_STATUS.NOT_FOUND,
+          message: POST_MESSAGES.POST_NOT_FOUND,
+          data : data,
+        });
+    }
+      // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
+    let comments = await Promise.all(data.Comment.map(async (comment) =>{
+      const {commentId} = req.params
+      const commentLikeCount = await prisma.like.count({
+        where: {
+          commentId: commentId
+        }
+      })
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 
         return {
           commentId: comment.commentId,
@@ -158,25 +181,36 @@ postsRouter.get('/:id', async (req, res, next) => {
       likes: likeCount,
       comment: comments,
     };
+<<<<<<< HEAD
     console.log(data);
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
       message: POST_MESSAGES.POST_DETAIL,
       data,
     });
+=======
+
+    return res
+      .status(HTTP_STATUS.OK)
+      .json({
+        status: HTTP_STATUS.OK,
+        message: POST_MESSAGES.POST_DETAIL,
+        data,
+      });
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
   } catch (error) {
     next(error);
   }
 });
 
-// 게시글 수정
+/** 게시글 수정 **/
 postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { postId } = req.params;
     const { title, content, regionId, imageUrl } = req.body;
 
-    const idcheck = await prisma.Post.findUnique({
+    const idcheck = await prisma.post.findUnique({
       where: {
         postId: +postId,
       },
@@ -195,8 +229,10 @@ postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
         message: '수정된 내용이 없습니다.',
       });
     }
-
-    const updatedPost = await prisma.Post.update({
+    if(idcheck.userId !== userId){
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message : '접근 권한이 없습니다.'})
+    }
+    const updatedPost = await prisma.post.update({
       where: { postId: +postId },
       data: {
         title,
@@ -235,12 +271,13 @@ postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
   }
 });
 
-//게시글 삭제
+/** 게시글 삭제 **/
 postsRouter.delete('/:postId', requireAccessToken, async (req, res, next) => {
   try {
+    const { userId } = req.user
     const { postId } = req.params;
 
-    const idcheck = await prisma.Post.findUnique({
+    const idcheck = await prisma.post.findUnique({
       where: {
         postId: +postId,
       },
@@ -252,11 +289,26 @@ postsRouter.delete('/:postId', requireAccessToken, async (req, res, next) => {
         message: '게시물이 존재하지 않습니다.',
       });
     }
-
-    await prisma.Post.delete({
-      where: { postId: +postId },
+    if(idcheck.userId !== userId){
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message : '접근 권한이 없습니다.'})
+    }
+    
+    await prisma.comment.deleteMany({
+      where: {
+        postId: +postId
+      }
     });
 
+    await prisma.like.deleteMany({
+      where: {
+        postId: +postId
+      }
+    });
+
+    await prisma.post.delete({
+      where: { postId: +postId, userId: userId},
+    });
+      
     return res.status(200).json({
       status: HTTP_STATUS.OK,
       message: '게시글 삭제가 완료되었습니다.',
@@ -265,6 +317,8 @@ postsRouter.delete('/:postId', requireAccessToken, async (req, res, next) => {
     next(error);
   }
 });
+
+
 
 /** 게시글 좋아요 기능 **/
 postsRouter.patch(
@@ -290,7 +344,6 @@ postsRouter.patch(
         },
       });
       if (postsData) {
-        // 좋아요 삭제
         await prisma.like.delete({
           where: {
             likeId: postsData.likeId,
@@ -300,7 +353,6 @@ postsRouter.patch(
           .status(200)
           .json({ message: '게시글 좋아요가 삭제되었습니다.' });
       } else {
-        // 좋아요 생성
         await prisma.like.create({
           data: {
             postId: +postId,
@@ -326,7 +378,6 @@ postsRouter.patch(
       const { postId, commentId } = req.params;
       const { userId } = req.user;
 
-      // 게시글 존재 여부 확인
       const postResult = await prisma.post.findUnique({
         where: { postId: +postId },
       });
@@ -334,7 +385,6 @@ postsRouter.patch(
         return res.status(400).json({ message: '게시글이 존재하지 않습니다.' });
       }
 
-      // 댓글 존재 여부 확인
       const commentResult = await prisma.comment.findUnique({
         where: { commentId: +commentId },
       });
@@ -342,7 +392,6 @@ postsRouter.patch(
         return res.status(400).json({ message: '댓글이 존재하지 않습니다.' });
       }
 
-      // 좋아요 존재 여부 확인
       const likeData = await prisma.commentLike.findFirst({
         where: {
           commentId: +commentId,
@@ -352,7 +401,6 @@ postsRouter.patch(
       });
 
       if (likeData) {
-        // 좋아요 삭제
         await prisma.commentLike.delete({
           where: {
             commentlikeId: likeData.commentlikeId,
@@ -362,7 +410,6 @@ postsRouter.patch(
           .status(200)
           .json({ message: '댓글 좋아요가 삭제되었습니다.' });
       } else {
-        // 좋아요 생성
         await prisma.commentLike.create({
           data: {
             commentId: +commentId,
@@ -380,7 +427,7 @@ postsRouter.patch(
   }
 );
 
-/**  댓글 생성 기능 **/
+/**  게시글에 댓글 생성 **/
 postsRouter.post(
   '/comment/:postId',
   requireAccessToken,
@@ -429,17 +476,17 @@ postsRouter.post(
   }
 );
 
-/** 댓글 조회 기능 **/
+/** 게시글에 댓글 조회 **/
 postsRouter.get(
   '/comments/:postId',
   requireAccessToken,
   async (req, res, next) => {
     try {
       const { postId } = req.params;
-      const postData = await prisma.post.findMany({
+
+      const postData = await prisma.post.findFirst({
         where: { postId: +postId },
       });
-
       if (!postData) {
         return res.status(400).json({ message: '게시글을 찾을 수 없습니다.' });
       }
@@ -456,10 +503,9 @@ postsRouter.get(
           },
         },
       });
-
       const data = commentData.map((comment) => {
         return {
-          commentId: comment.contentId,
+          commentId: comment.commentId,
           userId: comment.userId,
           postId: comment.postId,
           nickname: comment.user.nickname,
@@ -468,7 +514,6 @@ postsRouter.get(
           updatedAt: comment.updatedAt,
         };
       });
-
       return res.status(200).json({ data: data });
     } catch (error) {
       next(error);
@@ -476,6 +521,7 @@ postsRouter.get(
   }
 );
 
+/** 게시글에 댓글 수정 **/
 postsRouter.patch(
   '/comments/:postId/:commentId',
   requireAccessToken,
@@ -521,6 +567,7 @@ postsRouter.patch(
   }
 );
 
+/** 게시글에 댓글 삭제 **/
 postsRouter.delete(
   '/comments/:postId/:commentId',
   requireAccessToken,
@@ -528,7 +575,6 @@ postsRouter.delete(
     try {
       const { postId, commentId } = req.params;
       const { userId } = req.user;
-
       const data = await prisma.comment.findFirst({
         where: {
           commentId: +commentId,
@@ -562,6 +608,7 @@ postsRouter.delete(
   }
 );
 
+<<<<<<< HEAD
 // //게시글 이미지 업로드
 postsRouter.post(
   '/uploadtest',
@@ -581,4 +628,57 @@ postsRouter.post(
   }
 );
 
+=======
+/** 카테고리 별 목록조회**/
+postsRouter.get(
+  '/category/:categoryId',
+  requireAccessToken,
+  async (req, res, next) => {
+    try {
+      const { categoryId } = req.params;
+      console.log(categoryId);
+      const data = await prisma.post.findMany({
+        where: {
+          regionId: +categoryId,
+        },
+        select: {
+          postId: true, 
+          userId: true,
+          title: true,
+          content: true,
+          regionId: true,
+          imageUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          user: {
+            select: {
+              nickname: true,
+            }
+          }
+        }
+      });
+      
+      const result = data.map(post => ({
+        postId: post.postId,
+        userId: post.userId,
+        title: post.title,
+        content: post.content,
+        regionId: post.regionId,
+        imageUrl: post.imageUrl,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        nickname: post.user.nickname,
+      }));
+
+      return res
+        .status(200)
+        .json({ message: '조회에 성공 했습니다.', data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
+
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 export { postsRouter };

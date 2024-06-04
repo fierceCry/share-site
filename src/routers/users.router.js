@@ -9,6 +9,7 @@ import { profileUpload } from '../middlwarmies/S3.middleware.js';
 
 const userRouter = express.Router();
 
+<<<<<<< HEAD
 userRouter.get('/:id', requireAccessToken, async (req, res, next) => {
   try {
     const { id: userId } = req.params;
@@ -26,12 +27,41 @@ userRouter.get('/:id', requireAccessToken, async (req, res, next) => {
       },
     });
 
+=======
+userRouter.get('/my', requireAccessToken, async (req, res, next) => {
+  try {
+    const { userId } = req.user;
+    const userProfile = await prisma.user.findUnique({
+        where: { userId: +userId },
+        select: {
+          userId: true,
+          email: true,
+          nickname: true,
+          oneLiner: true,
+          imageUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          posts: {
+            select: {
+              postId: true,
+              title: true,
+              content: true,
+              imageUrl: true,
+              createdAt: true,
+              updatedAt: true
+            }
+          }
+        }
+      });
+      
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
     if (!userProfile) {
       return res
         .status(HTTP_STATUS.NOT_FOUND)
         .json({ error: '사용자의 프로필을 찾을 수 없습니다.' });
     }
 
+<<<<<<< HEAD
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
       userProfile,
@@ -40,6 +70,27 @@ userRouter.get('/:id', requireAccessToken, async (req, res, next) => {
     next(err);
   }
 });
+=======
+    const formattedPosts = userProfile.posts.map(post => ({
+        postId: post.postId,
+        title: post.title,
+        content: post.content,
+        imageUrl: post.imageUrl,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt
+      })); 
+      return res.status(HTTP_STATUS.OK).json({
+        status: HTTP_STATUS.OK,
+        userProfile: {
+          ...userProfile,
+          posts: formattedPosts
+        }
+      });
+    } catch (err) {
+      next(err);
+    }
+  });
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 
 userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
   try {
@@ -119,10 +170,19 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
 
     const isPasswordValid = await bcrypt.compare(password, user.password);
     if (!isPasswordValid) {
+<<<<<<< HEAD
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({
         status: HTTP_STATUS.UNAUTHORIZED,
         error: '기존 비밀번호가 일치하지 않습니다.',
       });
+=======
+      return res
+        .status(HTTP_STATUS.UNAUTHORIZED)
+        .json({
+          status: HTTP_STATUS.UNAUTHORIZED,
+          error: '기존 비밀번호가 일치하지 않습니다.',
+        });
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
     }
 
     const hashedNewPassword = await bcrypt.hash(
@@ -149,6 +209,7 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
   }
 });
 
+<<<<<<< HEAD
 //프로필 이미지 업로드
 userRouter.post(
   '/profileupload',
@@ -172,4 +233,6 @@ userRouter.post(
   }
 );
 
+=======
+>>>>>>> f58749d545187f060ab0bfd177c755c4c5ae9a5d
 export { userRouter };
