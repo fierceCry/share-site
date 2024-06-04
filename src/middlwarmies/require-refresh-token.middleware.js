@@ -38,7 +38,6 @@ export const requireRefreshToken = async (req, res, next) => {
     let payload;
     try {
       payload = jwt.verify(refreshToken, ENV_KEY.REFRESH_TOKEN_SECRET);
-      console.log(payload)
     } catch (error) {
       // RefreshToken 유효기한이 지난 경우
       if (error.name === 'TokenExpiredError') {

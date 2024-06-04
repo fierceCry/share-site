@@ -8,7 +8,6 @@ export const requireAccessToken = async (req, res, next) => {
   try {
     // 인증 정보 파싱
     const authorization = req.headers.authorization;
-
     // Authorization이 없는 경우
     if (!authorization) {
       return res.status(HTTP_STATUS.UNAUTHORIZED).json({

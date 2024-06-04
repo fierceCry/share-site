@@ -16,7 +16,8 @@ postsRouter.post(
     try {
       const { userId } = req.user;
       const { title, content, regionId, imageUrl } = req.body;
-
+      console.log(req.body)
+      console.log(userId);
       const data = await prisma.post.create({
         data: {
           userId: userId,
@@ -26,7 +27,7 @@ postsRouter.post(
           imageUrl,
         },
       });
-
+      console.log(data)
       return res.status(HTTP_STATUS.CREATED).json({
         status: HTTP_STATUS.CREATED,
         message: POST_MESSAGES.POST_CREATE,
@@ -43,6 +44,8 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
   try {
     const { userId } = req.user;
     //const postId = userId;
+    console.log(1)
+    console.log(userId)
     //정렬
     let { sort } = req.query;
 
@@ -158,8 +161,10 @@ postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
     const { userId } = req.user;
     const { postId } = req.params;
     const { title, content, regionId, imageUrl } = req.body;
-
-    const idcheck = await prisma.Post.findUnique({
+    console.log(req.user)
+    console.log(req.body)
+    console.log(postId)
+    const idcheck = await prisma.post.findUnique({
       where: {
         postId: +postId,
       },
@@ -178,8 +183,10 @@ postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
         message: '수정된 내용이 없습니다.',
       });
     }
-
-    const updatedPost = await prisma.Post.update({
+    if(idcheck.userId !== userId){
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({ message : '접근 권한이 없습니다.'})
+    }
+    const updatedPost = await prisma.post.update({
       where: { postId: +postId },
       data: {
         title,
@@ -219,11 +226,13 @@ postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
 });
 
 //게시글 삭제
+// 게시글 삭제 할떄 좋아요 댓글 삭제하고 게시글 삭제
 postsRouter.delete('/:postId', requireAccessToken, async (req, res, next) => {
   try {
+    const { userId } = req.user
     const { postId } = req.params;
 
-    const idcheck = await prisma.Post.findUnique({
+    const idcheck = await prisma.post.findUnique({
       where: {
         postId: +postId,
       },
@@ -235,11 +244,29 @@ postsRouter.delete('/:postId', requireAccessToken, async (req, res, next) => {
         message: '게시물이 존재하지 않습니다.',
       });
     }
-
-    await prisma.Post.delete({
-      where: { postId: +postId },
+    if(idcheck.userId !== userId){
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message : '접근 권한이 없습니다.'})
+    }
+    
+    // 게시물에 관련된 댓글 삭제
+    await prisma.comment.deleteMany({
+      where: {
+        postId: +postId
+      }
     });
 
+    // 게시물에 관련된 좋아요 삭제
+    await prisma.like.deleteMany({
+      where: {
+        postId: +postId
+      }
+    });
+
+    // 게시물 삭제
+    await prisma.post.delete({
+      where: { postId: +postId, userId: userId},
+    });
+      
     return res.status(200).json({
       status: HTTP_STATUS.OK,
       message: '게시글 삭제가 완료되었습니다.',
@@ -248,6 +275,8 @@ postsRouter.delete('/:postId', requireAccessToken, async (req, res, next) => {
     next(error);
   }
 });
+
+
 
 /** 게시글 좋아요 기능 **/
 postsRouter.patch(
@@ -418,11 +447,14 @@ postsRouter.get(
   requireAccessToken,
   async (req, res, next) => {
     try {
+      console.log(req.user)
       const { postId } = req.params;
-      const postData = await prisma.post.findMany({
+      console.log(1)
+      console.log(postId)
+      const postData = await prisma.post.findFirst({
         where: { postId: +postId },
       });
-
+      console.log(postData)
       if (!postData) {
         return res.status(400).json({ message: '게시글을 찾을 수 없습니다.' });
       }
@@ -439,10 +471,9 @@ postsRouter.get(
           },
         },
       });
-
       const data = commentData.map((comment) => {
         return {
-          commentId: comment.contentId,
+          commentId: comment.commentId,
           userId: comment.userId,
           postId: comment.postId,
           nickname: comment.user.nickname,
@@ -451,7 +482,7 @@ postsRouter.get(
           updatedAt: comment.updatedAt,
         };
       });
-
+      console.log(data)
       return res.status(200).json({ data: data });
     } catch (error) {
       next(error);
@@ -513,7 +544,6 @@ postsRouter.delete(
     try {
       const { postId, commentId } = req.params;
       const { userId } = req.user;
-
       const data = await prisma.comment.findFirst({
         where: {
           commentId: +commentId,
@@ -548,5 +578,55 @@ postsRouter.delete(
     }
   }
 );
+// 카테고리별 목록조회
+postsRouter.get(
+  '/category/:categoryId',
+  requireAccessToken,
+  async (req, res, next) => {
+    try {
+      const { categoryId } = req.params;
+      console.log(categoryId);
+      const data = await prisma.post.findMany({
+        where: {
+          regionId: +categoryId,
+        },
+        select: {
+          postId: true, 
+          userId: true,
+          title: true,
+          content: true,
+          regionId: true,
+          imageUrl: true,
+          createdAt: true,
+          updatedAt: true,
+          user: {
+            select: {
+              nickname: true,
+            }
+          }
+        }
+      });
+      
+      const result = data.map(post => ({
+        postId: post.postId,
+        userId: post.userId,
+        title: post.title,
+        content: post.content,
+        regionId: post.regionId,
+        imageUrl: post.imageUrl,
+        createdAt: post.createdAt,
+        updatedAt: post.updatedAt,
+        nickname: post.user.nickname,
+      }));
+
+      return res
+        .status(200)
+        .json({ message: '조회에 성공 했습니다.', data: result });
+    } catch (error) {
+      next(error);
+    }
+  }
+);
+
 
 export { postsRouter };

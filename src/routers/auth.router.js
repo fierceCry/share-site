@@ -17,7 +17,7 @@ const authRouter = express();
 
 authRouter.get(
   '/naver',
-  passport.authenticate('naver', { session: false, authType: 'reprompt' })
+  passport.authenticate('naver', { session: false})
 );
 
 authRouter.get(
@@ -57,6 +57,7 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
     } = req.body;
     //중복되는 이메일이 있다면 회원가입 실패
     const existedUser = await prisma.user.findUnique({ where: { email} });
+    console.log(existedUser)
     if (existedUser)
       return res.status(HTTP_STATUS.CONFLICT).json({
         status: HTTP_STATUS.CONFLICT,
@@ -99,9 +100,9 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
 
 authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
   try {
-    const { email, password } = req.body;
+    const { email, password, provider } = req.body;
     // 해당 사용자가 없을 시
-    const user = await prisma.user.findUnique({ where: { email} });
+    const user = await prisma.user.findUnique({ where: { email, provider} });
     if (!user)
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
@@ -170,7 +171,14 @@ authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
     const userData = await prisma.emailAuthCode.findFirst({
       where: { email: email },
     });
-
+    const result = await prisma.user.findFirst({
+      where: {
+        email: email
+      }
+    })
+    if(result){
+      return res.status(400).json({ message: '가입 된 이메일입니다.'})
+    }
     const emailCode = generateRandomCode();
     const expirationAt = new Date();
     expirationAt.setMinutes(expirationAt.getMinutes() + 5);
