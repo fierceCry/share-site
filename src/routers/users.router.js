@@ -8,43 +8,69 @@ import { authConstant } from '../constants/auth.constant.js';
 
 const userRouter = express.Router();
 
+userRouter.get('/my', requireAccessToken, async (req, res, next) => {
+  try {
+    const { userId } = req.user;
+    const userProfile = await prisma.user.findUnique({
+      where: { userId: +userId },
+      select: {
+        userId: true,
+        email: true,
+        nickname: true,
+        oneLiner: true,
+        imageUrl: true,
+        createdAt: true,
+        updatedAt: true,
+        posts: {
+          select: {
+            postId: true,
+            title: true,
+            content: true,
+            imageUrl: true,
+            createdAt: true,
+            updatedAt: true,
+          },
+        },
+      },
+    });
 
-
-userRouter.get('/:id', requireAccessToken,async (req, res, next) => {
-    try {
-        const {  id: userId } = req.params; 
-
-        
-       
-        const userProfile = await prisma.user.findUnique({
-            where: { userId: +userId }, 
-            select: { 
-                userId: true,
-                email: true,
-                nickname: true,
-                oneLiner: true,
-                imageUrl: true,
-                createdAt: true,
-                updatedAt: true
-            }
-        });
-
-            if(!userProfile){
-                return res.status(HTTP_STATUS.NOT_FOUND).json({ error: '사용자의 프로필을 찾을 수 없습니다.'})
-            }
-
-            return res.status(HTTP_STATUS.OK).json({
-                status: HTTP_STATUS.OK,
-                userProfile
-            })
-       
-        
-    }catch(err){
-        next(err)
+    if (!userProfile) {
+      return res
+        .status(HTTP_STATUS.NOT_FOUND)
+        .json({ error: '사용자의 프로필을 찾을 수 없습니다.' });
     }
-})
 
+    // 팔로우 수와 팔로워 수를 카운트
+    const followerCount = await prisma.follows.count({
+      where: { followedId: +userId },
+    });
 
+    const followingCount = await prisma.follows.count({
+      where: { followerId: +userId },
+    });
+
+    const formattedPosts = userProfile.posts.map((post) => ({
+      postId: post.postId,
+      title: post.title,
+      content: post.content,
+      imageUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      updatedAt: post.updatedAt,
+    }));
+
+    return res.status(HTTP_STATUS.OK).json({
+      status: HTTP_STATUS.OK,
+      userProfile: {
+        ...userProfile,
+        posts: formattedPosts,
+        followerCount,
+        followingCount,
+      },
+    });
+  } catch (err) {
+    next(err);
+  }
+});
 
 userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
     try {
@@ -136,6 +162,31 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
         next(err);
     }
 });
+
+userRouter.post(
+  '/profileupload',
+  requireAccessToken,
+  profileUpload.single('imageUrl'),
+  async (req, res) => {
+    console.log(req)
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ message: '이미지를 업로드하지 않았습니다.' });
+    }
+    const userId = req.user.userId;
+    const fileUrl = req.file.location;
+    console.log(userId)
+    console.log(fileUrl)
+    const updatedUser = await prisma.user.update({
+      where: { userId },
+      data: { imageUrl: fileUrl },
+    });
+    console.log(updatedUser)
+    res.status(200).json({ message: '프로필이 업로드 되었습니다.', data: updatedUser.imageUrl });
+  }
+);
+
 //팔로우
 userRouter.post('/follows/:userId', requireAccessToken, async(req, res, next)=>{
     console.log(requireAccessToken)

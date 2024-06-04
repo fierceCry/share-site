@@ -33,14 +33,20 @@ authRouter.get(
     );
   }
 );
-
-/** 카카오 로그인 뱃지 **/
-authRouter.get('/kakao', kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt' }));
+authRouter.get(
+  '/kakao',
+  kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt' })
+);
 
 /** 카카오 로그인 리다이렉트 **/
 authRouter.get(
   '/kakao/callback',
-  kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt'}),
+  //? 그리고 passport 로그인 전략에 의해 kakaoStrategy로 가서 카카오계정 정보와 DB를 비교해서 회원가입시키거나 로그인 처리하게 한다.
+  kakaoStrategy.authenticate('kakao', {
+    session: false,
+    failureRedirect: '/main',
+  }),
+  // kakaoStrategy에서 성공한다면 콜백 실행
   (req, res) => {
     const accessToken = req.user.data.token.accessToken;
     const refreshToken = req.user.data.token.refreshToken;
