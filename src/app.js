@@ -6,6 +6,7 @@ import logMiddleware from './middlwarmies/log.middleware.js';
 import passport from 'passport';
 import cors from 'cors';
 import bodyParser from 'body-parser';
+import path from 'path';
 
 const app = express();
 
