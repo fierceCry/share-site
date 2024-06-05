@@ -6,6 +6,7 @@ import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { POST_MESSAGES } from '../constants/post.constant.js';
 import { postCreateValidator } from '../middlwarmies/validators/src/middlewares/validators/create-post-validator.middleware.js';
 import { postUpload } from '../middlwarmies/S3.middleware.js';
+import { upload } from '../middlwarmies/multer.middleware.js';
 
 const postsRouter = express();
 
