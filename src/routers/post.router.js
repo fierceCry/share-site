@@ -108,7 +108,6 @@ postsRouter.get('/:id', async (req, res, next) => {
         },
       },
     });
-
     if (!data) {
       return res
         .status(HTTP_STATUS.NOT_FOUND)
@@ -126,7 +125,6 @@ postsRouter.get('/:id', async (req, res, next) => {
           commentId: commentId
         }
       })
-
         return {
           commentId: comment.commentId,
           userId: comment.userId,
@@ -143,6 +141,7 @@ postsRouter.get('/:id', async (req, res, next) => {
     data = {
       postId: data.postId,
       title: data.title,
+      userId: data.userId,
       content: data.content,
       nickname: data.user.nickname,
       nickname: data.user.nickname,
@@ -430,7 +429,7 @@ postsRouter.post(
         userId: commentData.userId,
         nickname: data.nickname,
       };
-      console.log(result);
+
       return res
         .status(200)
         .json({ message: '댓글 생성이 완료했습니다.', data: result });
