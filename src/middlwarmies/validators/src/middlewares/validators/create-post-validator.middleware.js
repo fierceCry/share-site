@@ -11,7 +11,8 @@ const schema = Joi.object({
   regionId: Joi.number()
     .required()
     .messages({ 'any.required': '지역을 입력해주세요' }),
-  imageUrl: Joi.string()
+  imageUrl: Joi.array()
+    .items(Joi.string().required())
     .required()
     .messages({ 'any.required': '이미지를 넣어주세요' }),
 });

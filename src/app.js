@@ -5,10 +5,12 @@ import { ENV_KEY } from './constants/env.constant.js';
 import logMiddleware from './middlwarmies/log.middleware.js';
 import passport from 'passport';
 import cors from 'cors';
-import path from 'path';
+import bodyParser from 'body-parser';
 
 const app = express();
 
+app.use(bodyParser.json({ limit: '500kb' }));
+app.use(bodyParser.urlencoded({ extended: true, limit: '500kb' }));
 app.use(cors())
 app.use(passport.initialize());
 app.use(logMiddleware)
