@@ -6,16 +6,18 @@ import bodyParser from 'body-parser';
 import { apiRouter } from '../src/routers/index.js';
 import { globalErrorHandler } from '../src/middlwarmies/error-handler.middleware.js';
 import { ENV_KEY } from './constants/env.constant.js';
+import path from 'path';
 
 const app = express();
 app.use(cors());
 
-app.use(passport.initialize());
 app.use(bodyParser.json({ limit: '10mb' }));
 app.use(bodyParser.urlencoded({ extended: true, limit: '10mb' }));
-app.use(logMiddleware);
-app.use(express.json());
-app.use(apiRouter);
+app.use(passport.initialize());
+app.use(logMiddleware)
+app.use(express.json())
+app.use('/uploads', express.static(path.join(path.resolve(), 'src/uploads')));
+app.use(apiRouter)
 app.use(globalErrorHandler);
 
 app.get('/api', (req, res) => {

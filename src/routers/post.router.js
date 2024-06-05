@@ -6,10 +6,30 @@ import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { POST_MESSAGES } from '../constants/post.constant.js';
 import { postCreateValidator } from '../middlwarmies/validators/src/middlewares/validators/create-post-validator.middleware.js';
 import { postUpload } from '../middlwarmies/S3.middleware.js';
+import { upload } from '../middlwarmies/multer.middleware.js';
 
 const postsRouter = express();
 
-/** 게시글 생성 **/
+
+postsRouter.post( '/upload', requireAccessToken, upload.single('image'), (req, res, next) => {
+  try{
+    if(!req.file){
+      return res.status(HTTP_STATUS.BAD_REQUEST).json({
+        status: HTTP_STATUS.BAD_REQUEST,
+        message: '이미지가 업로드 되지 않았습니다.',
+      });
+    }
+    const imageUrl = `/uploads/${req.file.filename}`;
+    return res.status(HTTP_STATUS.OK).json({
+      status: HTTP_STATUS.OK,
+      message: '이미지 업로드가 완료 되었습니다.',
+      imageUrl,
+    });
+  } catch (error){
+    next(error);
+  }
+})
+
 postsRouter.post(
   '/posts',
   requireAccessToken,
