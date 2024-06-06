@@ -15,7 +15,7 @@ import { requireRefreshToken } from '../middlwarmies/require-refresh-token.middl
 import kakaoStrategy from '../passport.Strategy/kakao.Strategy.js';
 const authRouter = express();
 
-/** 네이버 로그인 뱃지 **/
+/** 네이버 로그인 뱃지 **/ 
 authRouter.get(
   '/naver',
   passport.authenticate('naver', { session: false, authType: 'reprompt' })
@@ -33,6 +33,8 @@ authRouter.get(
     );
   }
 );
+
+/** 카카오 로그인 뱃지 **/ 
 authRouter.get(
   '/kakao',
   kakaoStrategy.authenticate('kakao', { session: false, authType: 'reprompt' })
@@ -41,12 +43,10 @@ authRouter.get(
 /** 카카오 로그인 리다이렉트 **/
 authRouter.get(
   '/kakao/callback',
-  //? 그리고 passport 로그인 전략에 의해 kakaoStrategy로 가서 카카오계정 정보와 DB를 비교해서 회원가입시키거나 로그인 처리하게 한다.
   kakaoStrategy.authenticate('kakao', {
     session: false,
     failureRedirect: '/main',
   }),
-  // kakaoStrategy에서 성공한다면 콜백 실행
   (req, res) => {
     const accessToken = req.user.data.token.accessToken;
     const refreshToken = req.user.data.token.refreshToken;
@@ -68,14 +68,12 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
       emailVerified,
       provider,
     } = req.body;
-    //중복되는 이메일이 있다면 회원가입 실패
     const existedUser = await prisma.user.findUnique({ where: { email } });
     if (existedUser)
       return res.status(HTTP_STATUS.CONFLICT).json({
         status: HTTP_STATUS.CONFLICT,
         message: MESSAGES.AUTH.COMMON.EMAIL.TOO,
       });
-
     const existedNickname = await prisma.user.findUnique({
       where: { nickname },
     });
@@ -84,7 +82,6 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
         status: HTTP_STATUS.CONFLICT,
         message: MESSAGES.AUTH.COMMON.NICKNAME.TOO,
       });
-
     const hashedPassword = bcrypt.hashSync(
       password,
       authConstant.HASH_SALT_ROUNDS
@@ -114,21 +111,17 @@ authRouter.post('/sign-up', signupValidator, async (req, res, next) => {
 authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
   try {
     const { email, password, provider } = req.body;
-
     const user = await prisma.user.findUnique({ where: { email, provider} });
     if (!user)
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
         .json({ message: MESSAGES.AUTH.COMMON.EMAIL.NOTFOUND });
-
     const userPassword = bcrypt.compareSync(password, user.password);
     if (!userPassword)
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
         .json({ message: MESSAGES.AUTH.COMMON.PASSWORD.NOTMATCHED });
-
     const accessToken = await generateAuthTokens({ id: user.userId });
-
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
       message: MESSAGES.AUTH.SIGN_IN.SUCCEED,
@@ -139,15 +132,12 @@ authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
   }
 });
 
-
 /** 토큰 재발급 **/
 authRouter.post('/token', requireRefreshToken, async (req, res, next) => {
   try {
     const user = req.user;
     const payload = { id: user.id };
-
     const data = await generateAuthTokens(payload);
-
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
       message: MESSAGES.AUTH.TOKEN.SUCCEED,
@@ -178,7 +168,6 @@ authRouter.delete('/sign-out', requireRefreshToken, async (req, res, next) => {
 authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
   try {
     const { email } = req.body;
-
     const userData = await prisma.emailAuthCode.findFirst({
       where: { email: email },
     });
@@ -188,7 +177,7 @@ authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
       }
     })
     if(result){
-      return res.status(400).json({ message: '가입 된 이메일입니다.'})
+      return res.status(400).json({ message: MESSAGES.AUTH.COMMON.EMAIL.TOO});
     }
     const emailCode = generateRandomCode();
     const expirationAt = new Date();
@@ -213,12 +202,10 @@ authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
         },
       });
     }
-
     const transporter = nodeMailer.createTransport({
       service: ENV_KEY.EMAIL_SERVICE,
       auth: { user: ENV_KEY.EMAIL_ADDRESS, pass: ENV_KEY.EMAIL_PASSWORD },
     });
-
     const mailOptions = {
       to: email,
       subject: '맛집 추천 이메일 인증번호 발송',
@@ -249,7 +236,7 @@ authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
     await transporter.sendMail(mailOptions);
     return res
       .status(200)
-      .json({ message: '이메일 인증번호를 이메일로 전송했습니다.' });
+      .json({ message:MESSAGES.AUTH.COMMON.EMAILVERIFIED.SEND});
   } catch (error) {
     next(error);
   }
@@ -259,22 +246,18 @@ authRouter.post('/email', emalilCodeSchema, async (req, res, next) => {
 authRouter.get('/verify-email/:email/:emailCode', async (req, res, next) => {
   try {
     const { email, emailCode } = req.params;
-
     const data = await prisma.emailAuthCode.findFirst({
       where: { email },
     });
-
     if (!data || data.emailCode !== emailCode) {
       return res
         .status(400)
-        .json({ message: '잘못된 이메일 또는 인증번호입니다.' });
+        .json({ message:MESSAGES.AUTH.COMMON.EMAILVERIFIED.FAILED });
     }
-
     if (data.expirationAt < new Date()) {
-      return res.status(400).json({ message: '인증번호가 만료되었습니다.' });
+      return res.status(400).json({ message:MESSAGES.AUTH.COMMON.EMAILVERIFIED.TIMEOVER });
     }
-
-    return res.status(200).json({ message: '인증이 성공되었습니다.' });
+    return res.status(200).json({ message:MESSAGES.AUTH.COMMON.EMAILVERIFIED.SUCCESS });
   } catch (error) {
     next(error);
   }
@@ -286,17 +269,14 @@ const generateAuthTokens = async (payload) => {
   const accessToken = jwt.sign(payload, ENV_KEY.ACCESS_TOKEN_SECRET, {
     expiresIn: '12h',
   });
-  console.log(accessToken);
   const refreshToken = jwt.sign(payload, ENV_KEY.REFRESH_TOKEN_SECRET, {
     expiresIn: '7d',
   });
-  console.log(refreshToken);
   const hashedRefreshToken = bcrypt.hashSync(
     refreshToken,
     authConstant.HASH_SALT_ROUNDS
   );
 
-  // RefreshToken을 갱신 ( 없을경우 생성 )
   await prisma.refreshToken.upsert({
     where: {
       userId,
@@ -309,7 +289,6 @@ const generateAuthTokens = async (payload) => {
       refreshToken: hashedRefreshToken,
     },
   });
-
   return { accessToken, refreshToken };
 };
 

@@ -11,7 +11,6 @@ export default function (req, res, next) {
     ),
     transports: [new winston.transports.Console()],
   });
-
   const start = new Date().getTime();
   res.on('finish', () => {
     const duration = new Date().getTime() - start;
