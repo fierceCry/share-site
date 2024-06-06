@@ -1,13 +1,12 @@
 import express from 'express';
 import { prisma } from '../utils/prisma.utils.js';
 import { commentSchema } from '../middlwarmies/validation/comment.validation.middleware.js';
-import { requireAccessToken } from '../middlwarmies/require-access-token.middleware.js';
 import { HTTP_STATUS } from '../constants/http-status.constant.js';
-import { POST_MESSAGES } from '../constants/post.constant.js';
-import { postCreateValidator } from '../middlwarmies/validators/src/middlewares/validators/create-post-validator.middleware.js';
+import { postCreateValidator } from '../middlwarmies/validation/create-post-validator.middleware.js';
 import { postUpload } from '../middlwarmies/S3.middleware.js';
 import { upload } from '../middlwarmies/multer.middleware.js';
-
+import { MESSAGES } from '../constants/message.constant.js';
+import { requireAccessToken } from '../middlwarmies/require-access-token.middleware.js'
 const postsRouter = express();
 
 postsRouter.post(
@@ -16,18 +15,16 @@ postsRouter.post(
   upload.array('images', 5),
   (req, res, next) => {
     try {
-      console.log(req);
       if (!req.files) {
         return res.status(HTTP_STATUS.BAD_REQUEST).json({
           status: HTTP_STATUS.BAD_REQUEST,
-          message: '이미지가 업로드 되지 않았습니다.',
+          message: MESSAGES.POST_MESSAGES.POST_IMAGE_FAIL,
         });
       }
       const imageUrl = `/uploads/${req.file.filename}`;
-      console.log(imageUrl);
       return res.status(HTTP_STATUS.OK).json({
         status: HTTP_STATUS.OK,
-        message: '이미지 업로드가 완료 되었습니다.',
+        message: MESSAGES.POST_MESSAGES.POST_IMAGE_CREATE,
         imageUrl,
       });
     } catch (error) {
@@ -44,7 +41,6 @@ postsRouter.post(
     try {
       const { userId } = req.user;
       const { title, content, regionId, imageUrl } = req.body;
-
       const data = await prisma.post.create({
         data: {
           userId: userId,
@@ -56,7 +52,7 @@ postsRouter.post(
       });
       return res.status(HTTP_STATUS.CREATED).json({
         status: HTTP_STATUS.CREATED,
-        message: POST_MESSAGES.POST_CREATE,
+        message: MESSAGES.POST_MESSAGES.POST_CREATE,
         data: data,
       });
     } catch (error) {
@@ -68,15 +64,14 @@ postsRouter.post(
 /** 게시글 목록 조회 **/
 postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
   try {
+    console.log(res.user)
     let { sort, page = 1, limit = 12 } = req.query;
     sort = sort?.toLowerCase();
 
     if (sort !== 'desc' && sort !== 'asc') {
       sort = 'desc';
     }
-
     const skip = (page - 1) * limit;
-
     const [data, totalCount] = await Promise.all([
       prisma.post.findMany({
         orderBy: {
@@ -105,7 +100,7 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
     });
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
-      message: POST_MESSAGES.POST_LIST,
+      message: MESSAGES.POST_MESSAGES.POST_LIST,
       data: formattedData,
       currentPage: page,
       totalPages,
@@ -115,22 +110,16 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
   }
 });
 
-
-
 /** 게시글 상세 조회 **/
 postsRouter.get('/:id', requireAccessToken, async (req, res, next) => {
   try {
     const { id: postId } = req.params;
-    const userId = req.user.userId; // 인증된 사용자의 ID를 가져옵니다. (예: JWT 토큰에서 추출된 userId)
-    
-    // 게시글의 좋아요 수를 가져옵니다.
+    const userId = req.user.userId;
     const likeCount = await prisma.like.count({
       where: {
         postId: +postId,
       },
     });
-
-    // 사용자가 게시글에 좋아요를 눌렀는지 여부를 확인합니다.
     const userLike = await prisma.like.findFirst({
       where: {
         postId: +postId,
@@ -138,8 +127,6 @@ postsRouter.get('/:id', requireAccessToken, async (req, res, next) => {
       },
     });
     const isLikedByUser = Boolean(userLike);
-
-    // 게시글의 데이터를 가져옵니다.
     let data = await prisma.post.findUnique({
       where: { postId: +postId },
       include: {
@@ -160,16 +147,13 @@ postsRouter.get('/:id', requireAccessToken, async (req, res, next) => {
         },
       },
     });
-
     if (!data) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         status: HTTP_STATUS.NOT_FOUND,
-        message: POST_MESSAGES.POST_NOT_FOUND,
+        message: MESSAGES.POST_MESSAGES.POST_NOT_FOUND,
         data: data,
       });
     }
-
-    // 댓글의 좋아요 수를 계산하여 댓글 정보에 추가합니다.
     let comments = await Promise.all(
       data.Comment.map(async (comment) => {
         const commentLikeCount = await prisma.commentLike.count({
@@ -184,12 +168,11 @@ postsRouter.get('/:id', requireAccessToken, async (req, res, next) => {
           comment: comment.comment,
           createdAt: comment.createdAt,
           updatedAt: comment.updatedAt,
-          nickname: comment.user.nickname, // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
-          likes: commentLikeCount, // 댓글 좋아요 수
+          nickname: comment.user.nickname, 
+          likes: commentLikeCount, 
         };
       })
     );
-
     // 최종 응답 데이터를 구성합니다.
     data = {
       postId: data.postId,
@@ -201,14 +184,13 @@ postsRouter.get('/:id', requireAccessToken, async (req, res, next) => {
       imageUrl: data.imageUrl,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
-      comments: comments, // 'comments'로 키 이름 수정
-      likes: likeCount, // 게시글 좋아요 수 추가
-      isLikedByUser, // 사용자가 좋아요를 눌렀는지 여부 추가
+      comments: comments, 
+      likes: likeCount, 
+      isLikedByUser,
     };
-    console.log(data)
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
-      message: POST_MESSAGES.POST_DETAIL,
+      message: MESSAGES.POST_MESSAGES.POST_DETAIL,
       data,
     });
   } catch (error) {
@@ -216,39 +198,34 @@ postsRouter.get('/:id', requireAccessToken, async (req, res, next) => {
   }
 });
 
-
 /** 게시글 수정 **/
 postsRouter.patch('/:postId', requireAccessToken, upload.single('image'), async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { postId } = req.params;
     const { title, content, regionId, imageUrl } = req.body;
-    console.log(imageUrl)
     const idcheck = await prisma.post.findUnique({
       where: {
         postId: +postId,
       },
     });
-
     if (!idcheck) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         status: HTTP_STATUS.NOT_FOUND,
-        message: '게시물이 존재하지 않습니다.',
+        message: MESSAGES.POST_MESSAGES.POST_NOT_FOUND,
       });
     }
-
     if (!title && !content && !imageUrl && !regionId) {
-      return res.status(400).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         status: HTTP_STATUS.BAD_REQUEST,
-        message: '수정된 내용이 없습니다.',
+        message: MESSAGES.POST_MESSAGES.POST_NOT_UPDATE,
       });
     }
     if (idcheck.userId !== userId) {
       return res
         .status(HTTP_STATUS.BAD_REQUEST)
-        .json({ message: '접근 권한이 없습니다.' });
+        .json({ message: MESSAGES.POST_MESSAGES.POST_NOT_AUTH});
     }
-    console.log(imageUrl)
     const updatedPost = await prisma.post.update({
       where: { postId: +postId },
       data: {
@@ -267,10 +244,9 @@ postsRouter.patch('/:postId', requireAccessToken, upload.single('image'), async 
         },
       },
     });
-
-    return res.status(200).json({
+    return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
-      message: '수정 완료되었습니다.',
+      message: MESSAGES.POST_MESSAGES.POST_UPDATE,
       data: {
         postId: updatedPost.postId,
         email: updatedPost.user.email,
@@ -289,48 +265,42 @@ postsRouter.patch('/:postId', requireAccessToken, upload.single('image'), async 
 });
 
 /** 게시글 삭제 **/
-postsRouter.delete('/:postId', requireAccessToken, async (req, res, next) => {
+postsRouter.delete('/:postId',requireAccessToken, async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { postId } = req.params;
-
     const idcheck = await prisma.post.findUnique({
       where: {
         postId: +postId,
       },
     });
-
     if (!idcheck) {
-      return res.status(404).json({
+      return res.status(HTTP_STATUS.NOT_FOUND).json({
         status: HTTP_STATUS.NOT_FOUND,
-        message: '게시물이 존재하지 않습니다.',
+        message: MESSAGES.POST_MESSAGES.POST_NOT_FOUND,
       });
     }
     if (idcheck.userId !== userId) {
       return res
         .status(HTTP_STATUS.NOT_FOUND)
-        .json({ message: '접근 권한이 없습니다.' });
+        .json({ message: MESSAGES.POST_MESSAGES.POST_NOT_AUTH});
     }
-
     await prisma.comment.deleteMany({
       where: {
         postId: +postId,
       },
     });
-
     await prisma.like.deleteMany({
       where: {
         postId: +postId,
       },
     });
-
     await prisma.post.delete({
       where: { postId: +postId, userId: userId },
     });
-
-    return res.status(200).json({
+    return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
-      message: '게시글 삭제가 완료되었습니다.',
+      message: MESSAGES.POST_MESSAGES.POST_DELETE,
     });
   } catch (error) {
     next(error);
@@ -345,13 +315,11 @@ postsRouter.patch(
     try {
       const { postId } = req.params;
       const { userId } = req.user;
-
       const result = await prisma.post.findUnique({
         where: { postId: +postId },
       });
-
       if (!result) {
-        return res.status(400).json({ message: '게시글이 존재하지 않습니다.' });
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.POST_MESSAGES.POST_NOT_FOUND});
       }
       // 좋아요 존재 여부 확인
       const postsData = await prisma.like.findFirst({
@@ -367,8 +335,8 @@ postsRouter.patch(
           },
         });
         return res
-          .status(200)
-          .json({ message: '게시글 좋아요가 삭제되었습니다.' });
+          .status(HTTP_STATUS.OK)
+          .json({ message: MESSAGES.POST_MESSAGES.POST_LIKE_DELETE});
       } else {
         await prisma.like.create({
           data: {
@@ -377,8 +345,8 @@ postsRouter.patch(
           },
         });
         return res
-          .status(200)
-          .json({ message: '게시글 좋아요가 생성되었습니다.' });
+          .status(HTTP_STATUS.OK)
+          .json({ message: MESSAGES.POST_MESSAGES.POST_LIKE_CREATE});
       }
     } catch (error) {
       next(error);
@@ -394,21 +362,18 @@ postsRouter.patch(
     try {
       const { postId, commentId } = req.params;
       const { userId } = req.user;
-
       const postResult = await prisma.post.findUnique({
         where: { postId: +postId },
       });
       if (!postResult) {
-        return res.status(400).json({ message: '게시글이 존재하지 않습니다.' });
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.POST_MESSAGES.POST_NOT_FOUND});
       }
-
       const commentResult = await prisma.comment.findUnique({
         where: { commentId: +commentId },
       });
       if (!commentResult) {
-        return res.status(400).json({ message: '댓글이 존재하지 않습니다.' });
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.POST_MESSAGES.COMMENT_NOT_FOUND});
       }
-
       const likeData = await prisma.commentLike.findFirst({
         where: {
           commentId: +commentId,
@@ -416,7 +381,6 @@ postsRouter.patch(
           userId,
         },
       });
-
       if (likeData) {
         await prisma.commentLike.delete({
           where: {
@@ -424,8 +388,8 @@ postsRouter.patch(
           },
         });
         return res
-          .status(200)
-          .json({ message: '댓글 좋아요가 삭제되었습니다.' });
+          .status(HTTP_STATUS.OK)
+          .json({ message: MESSAGES.POST_MESSAGES.COMMENT_LIKE_DELETE});
       } else {
         await prisma.commentLike.create({
           data: {
@@ -435,8 +399,8 @@ postsRouter.patch(
           },
         });
         return res
-          .status(200)
-          .json({ message: '댓글 좋아요가 생성되었습니다.' });
+          .status(HTTP_STATUS.OK)
+          .json({ message: MESSAGES.POST_MESSAGES.COMMENT_LIKE_CREATE});
       }
     } catch (error) {
       next(error);
@@ -454,16 +418,14 @@ postsRouter.post(
       const { postId } = req.params;
       const { userId } = req.user;
       const { comment } = req.body;
-
       const postData = await prisma.post.findFirst({
         where: {
           postId: +postId,
         },
       });
       if (!postData) {
-        return res.status(400).json({ message: '게시글을 찾을 수 없습니다.' });
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.POST_MESSAGES.POST_NOT_FOUND});
       }
-
       const commentData = await prisma.comment.create({
         data: {
           postId: +postId,
@@ -483,10 +445,9 @@ postsRouter.post(
         userId: commentData.userId,
         nickname: data.nickname,
       };
-
       return res
-        .status(200)
-        .json({ message: '댓글 생성이 완료했습니다.', data: result });
+        .status(HTTP_STATUS.OK)
+        .json({ message: MESSAGES.POST_MESSAGES.POST_COMMENT_CREATE, data: result });
     } catch (error) {
       next(error);
     }
@@ -504,11 +465,9 @@ postsRouter.get(
       const postData = await prisma.post.findFirst({
         where: { postId: +postId },
       });
-
       if (!postData) {
-        return res.status(400).json({ message: '게시글을 찾을 수 없습니다.' });
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.POST_MESSAGES.POST_NOT_FOUND});
       }
-
       const commentsWithLikes = await prisma.comment.findMany({
         where: {
           postId: +postId,
@@ -519,15 +478,14 @@ postsRouter.get(
               nickname: true,
             },
           },
-          commentLike: true, // 모든 좋아요를 포함
+          commentLike: true,
         },
       });
-
       const data = commentsWithLikes.map((comment) => {
-        const likeCount = comment.commentLike.length; // 좋아요 개수 계산
+        const likeCount = comment.commentLike.length;
         const isLikedByUser = comment.commentLike.some(
           (like) => like.userId === +userId
-        ); // 사용자가 좋아요를 눌렀는지 확인
+        ); 
 
         return {
           commentId: comment.commentId,
@@ -537,18 +495,17 @@ postsRouter.get(
           comment: comment.comment,
           createdAt: comment.createdAt,
           updatedAt: comment.updatedAt,
-          likeCount, // 좋아요 개수 추가
-          isLikedByUser, // 사용자가 좋아요를 눌렀는지 여부 추가
+          likeCount, 
+          isLikedByUser, 
         };
       });
 
-      return res.status(200).json({ data : data });
+      return res.status(HTTP_STATUS.OK).json({ data : data });
     } catch (error) {
       next(error);
     }
   }
 );
-
 
 /** 게시글에 댓글 수정 **/
 postsRouter.patch(
@@ -566,16 +523,14 @@ postsRouter.patch(
           commentId: +commentId,
         },
       });
-
       if (!existingComment) {
-        return res.status(404).json({ message: '댓글을 찾을 수 없습니다.' });
+        return res.status(HTTP_STATUS.NOT_FOUND).json({ message: MESSAGES.POST_MESSAGES.COMMENT_NOT_FOUND});
       }
       if (existingComment.userId !== userId) {
         return res
-          .status(403)
-          .json({ message: '댓글을 수정할 수 있는 권한이 없습니다.' });
+          .status(HTTP_STATUS.FORBIDDEN)
+          .json({ message: MESSAGES.POST_MESSAGES.COMMENT_NOT_UPDATE});
       }
-
       const updatedComment = await prisma.comment.update({
         where: {
           commentId: +commentId,
@@ -586,8 +541,8 @@ postsRouter.patch(
           comment: comment,
         },
       });
-      return res.status(200).json({
-        message: '댓글이 성공적으로 수정되었습니다.',
+      return res.status(HTTP_STATUS.OK).json({
+        message: MESSAGES.POST_MESSAGES.COMMENT_UPDATE,
         data: updatedComment,
       });
     } catch (error) {
@@ -610,25 +565,22 @@ postsRouter.delete(
           postId: +postId,
         },
       });
-
       if (!data) {
-        return res.status(400).json({ message: '댓글이 없습니다.' });
+        return res.status(HTTP_STATUS.BAD_REQUEST).json({ message: MESSAGES.POST_MESSAGES.COMMENT_NOT_FOUND});
       }
-
       if (data.userId !== userId) {
         return res
-          .status(403)
-          .json({ message: '댓글을 삭제할 수 있는 권한이 없습니다.' });
+          .status(HTTP_STATUS.FORBIDDEN)
+          .json({ message: MESSAGES.POST_MESSAGES.COMMENT_NOT_DELETE});
       }
-
       const deleteComment = await prisma.comment.delete({
         where: {
           commentId: +commentId,
           userId: userId,
         },
       });
-      return res.status(200).json({
-        message: '댓글이 성공적으로 삭제되었습니다.',
+      return res.status(HTTP_STATUS.OK).json({
+        message: MESSAGES.POST_MESSAGES.COMMENT_DELETE,
         data: deleteComment,
       });
     } catch (error) {
@@ -637,20 +589,18 @@ postsRouter.delete(
   }
 );
 
-// //게시글 이미지 업로드
+//게시글 이미지 업로드
 postsRouter.post(
   '/uploadtest',
   requireAccessToken,
-  // postCreateValidator,
-  postUpload.array('image', 10), // 여러 파일 업로드 가능
+  postUpload.array('image', 10), 
   async (req, res) => {
-    const fileUrls = req.files.map((file) => file.location); // 업로드된 파일의 URL 가져오기
+    const fileUrls = req.files.map((file) => file.location);
     const fileUrlsJson = {
-      imageUrl: JSON.stringify(fileUrls), // URL을 JSON 형식으로 변환하여 저장 / 해당 변수를 imagUrl 칸에 넣기.
+      imageUrl: JSON.stringify(fileUrls), 
     };
-
-    res.status(200).json({
-      message: '파일이 업로드 되었습니다.',
+    res.status(HTTP_STATUS.OK).json({
+      message: MESSAGES.POST_MESSAGES.POST_FILE_UPLOAD,
       data: fileUrlsJson,
     });
   }
@@ -663,9 +613,9 @@ postsRouter.get(
   async (req, res, next) => {
     try {
       const { categoryId } = req.params;
-      const limit = parseInt(req.query.limit) || 12;  // 기본값 10
-      const offset = parseInt(req.query.offset) || 0; // 기본값 0
-      console.log(req.user)
+      console.log(req)
+      const limit = parseInt(req.query.limit) || 12;  
+      const offset = parseInt(req.query.offset) || 0;
       const data = await prisma.post.findMany({
         where: {
           regionId: +categoryId,
@@ -688,7 +638,6 @@ postsRouter.get(
         skip: offset,
         take: limit,
       });
-
       const result = data.map((post) => ({
         postId: post.postId,
         userId: post.userId,
@@ -700,15 +649,13 @@ postsRouter.get(
         updatedAt: post.updatedAt,
         nickname: post.user.nickname,
       }));
-
       const totalPosts = await prisma.post.count({
         where: {
           regionId: +categoryId,
         },
       });
-
-      return res.status(200).json({
-        message: '조회에 성공 했습니다.',
+      return res.status(HTTP_STATUS.OK).json({
+        message: MESSAGES.POST_MESSAGES.POST_SUCCESS_CHECK,
         data: result,
         pagination: {
           total: totalPosts,

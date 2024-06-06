@@ -71,12 +71,12 @@ model RefreshToken {
 }
 
 model Comment {
-  commentId Int      @id @default(autoincrement())
-  userId    Int
-  postId    Int
-  comment   String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  commentId Int      @id @default(autoincrement()) @map("comment_id")
+  userId    Int      @map("user_id")
+  postId    Int      @map("post_Id")
+  comment   String   
+  createdAt DateTime @default(now()) @map("create_at")
+  updatedAt DateTime @updatedAt @map("update_at")
 
   user User @relation(fields: [userId], references: [userId])
   post Post @relation(fields: [postId], references: [postId])
@@ -85,10 +85,11 @@ model Comment {
 }
 
 model Like {
-  likeId    Int      @id @default(autoincrement())
-  userId    Int
-  postId    Int
-  createdAt DateTime @default(now())
+  likeId    Int      @id @default(autoincrement()) @map("like_id")
+  userId    Int      @map("user_id")
+  postId    Int      @map("post_Id")
+  createdAt DateTime @default(now()) @map("create_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
 
   post Post @relation(fields: [postId], references: [postId])
   user User @relation(fields: [userId], references: [userId])
@@ -96,11 +97,26 @@ model Like {
   @@map("like")
 }
 
+model CommentLike {
+  commentlikeId    Int      @id @default(autoincrement()) @map("comment_like_id")
+  userId           Int      @map("user_id")
+  postId           Int      @map("post_id")
+  commentId        Int      @map("comment_id")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatadAt        DateTime @updatedAt @map("updated_at")
+
+  post Post @relation(fields: [postId], references: [postId])
+  user User @relation(fields: [userId], references: [userId])
+  comment Comment @relation(fields: [commentId], references: [commentId])
+  
+  @@map("comment_like")
+}
 model Follows {
-  followId   Int      @id @default(autoincrement())
-  followerId Int
-  followedId Int
-  createdAt  DateTime @default(now())
+  followId   Int      @id @default(autoincrement()) @map("follow_Id")
+  followerId Int      @map("follower_Id")
+  followedId Int      @map("followed_id")
+  createdAt  DateTime @default(now()) @map("create_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
 
   follower User @relation("followers", fields: [followerId], references: [userId])
   followed User @relation("following", fields: [followedId], references: [userId])
@@ -109,7 +125,7 @@ model Follows {
 }
 
 model EmailAuthCode {
-  emailCodeId  Int      @id @default(autoincrement())
+  emailCodeId  Int      @id @default(autoincrement()) @map("email_code_id")
   email        String
   emailCode    String   @map("email_code")
   createdAt    DateTime @default(now()) @map("created_at")
@@ -117,19 +133,6 @@ model EmailAuthCode {
   expirationAt DateTime @map("expiration_at")
 
   @@map("email_auth_code")
-}
-
-model CommentLike {
-  commentlikeId    Int      @id @default(autoincrement())
-  userId           Int      @map("user_id")
-  postId           Int      @map("post_id")
-  commentId        Int      @map("comment_id")
-  createdAt        DateTime @default(now())
-
-  post Post @relation(fields: [postId], references: [postId])
-  user User @relation(fields: [userId], references: [userId])
-  comment Comment @relation(fields: [commentId], references: [commentId])
-  @@map("comment_like")
 }
 
 enum Provider {

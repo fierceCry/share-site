@@ -9,6 +9,7 @@ import { profileUpload } from '../middlwarmies/S3.middleware.js';
 
 const userRouter = express.Router();
 
+/** 본인 프로필 조회 **/
 userRouter.get('/my', requireAccessToken, async (req, res, next) => {
   try {
     const { userId } = req.user;
@@ -34,22 +35,17 @@ userRouter.get('/my', requireAccessToken, async (req, res, next) => {
         },
       },
     });
-
     if (!userProfile) {
       return res
         .status(HTTP_STATUS.NOT_FOUND)
-        .json({ error: '사용자의 프로필을 찾을 수 없습니다.' });
+        .json({ message :MESSAGES.PROFILE.INFORMATION.NOTFOUND});
     }
-
-    // 팔로우 수와 팔로워 수를 카운트
     const followerCount = await prisma.follows.count({
       where: { followedId: +userId },
-    });
-
+    })
     const followingCount = await prisma.follows.count({
       where: { followerId: +userId },
     });
-
     const formattedPosts = userProfile.posts.map((post) => ({
       postId: post.postId,
       title: post.title,
@@ -58,9 +54,7 @@ userRouter.get('/my', requireAccessToken, async (req, res, next) => {
       createdAt: post.createdAt,
       updatedAt: post.updatedAt,
     }));
-
     return res.status(HTTP_STATUS.OK).json({
-      status: HTTP_STATUS.OK,
       userProfile: {
         ...userProfile,
         posts: formattedPosts,
@@ -68,47 +62,41 @@ userRouter.get('/my', requireAccessToken, async (req, res, next) => {
         followingCount,
       },
     });
-  } catch (err) {
-    next(err);
+  } catch (error){
+    next(error);
   }
 });
 
-userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
+/** 마이페이지 프로필 수정 **/
+userRouter.patch('/user', requireAccessToken,async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { nickname, oneLiner } = req.body;
-
     if (!nickname && !oneLiner) {
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
-        .json({ error: '수정할 정보를 입력해 주세요.' });
+        .json({ message: MESSAGES.PROFILE.INFORMATION.CHANGE });
     }
-
     const user = await prisma.user.findUnique({
       where: { userId: userId },
     });
-
     if (nickname !== user.nickname) {
       const existedNickname = await prisma.user.findUnique({
         where: { nickname },
       });
       if (existedNickname) {
         return res.status(HTTP_STATUS.CONFLICT).json({
-          status: HTTP_STATUS.CONFLICT,
           message: MESSAGES.AUTH.COMMON.NICKNAME.TOO,
         });
       }
     }
-
     const updateData = {};
     if (nickname) updateData.nickname = nickname;
     if (oneLiner) updateData.oneLiner = oneLiner;
-
     const updateProfile = await prisma.user.update({
       where: { userId },
       data: updateData,
     });
-
     const profileDetail = {
       userId: updateProfile.id,
       nickname: updateProfile.nickname,
@@ -116,12 +104,10 @@ userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
       createdAt: updateProfile.createdAt,
       updatedAt: updateProfile.updatedAt,
     };
-
     return res
       .status(HTTP_STATUS.OK)
       .json({
-        status: HTTP_STATUS.OK,
-        message: '수정이 완료 되었습니다.',
+        message: MESSAGES.PROFILE.INFORMATION.CHNAGE_SUCCESS,
         profileDetail,
       });
   } catch (err) {
@@ -129,12 +115,12 @@ userRouter.patch('/user', requireAccessToken, async (req, res, next) => {
   }
 });
 
+/** 다른 유저 프로필 조회 **/
 userRouter.get('/:userId', requireAccessToken, async (req, res, next) => {
   try {
     const { userId } = req.params;
-    const currentUser = req.user; // 현재 사용자 정보 추출
+    const userProfile = req.user.id;
 
-    // 사용자 정보 조회
     const user = await prisma.user.findUnique({
       where: { userId: parseInt(userId) },
       select: {
@@ -154,26 +140,21 @@ userRouter.get('/:userId', requireAccessToken, async (req, res, next) => {
     });
 
     if (!user) {
-      return res.status(404).json({ message: '사용자가 없습니다.' });
+      return res.status(HTTP_STATUS.NOT_FOUND).json({ message: MESSAGES.PROFILE.INFORMATION.NO_USER });
     }
-
-    // 현재 사용자가 해당 사용자를 팔로우한 상태인지 여부 확인
     const isFollowing = await prisma.follows.findFirst({
       where: {
-        followerId: currentUser.userId, // 현재 사용자의 ID
-        followedId: parseInt(userId), // 특정 사용자의 ID
+        followerId: userProfile,
+        followedId: +userId,
       },
     });
-
-    // 팔로워와 팔로잉 수 조회
     const followersCount = await prisma.follows.count({
-      where: { followedId: parseInt(userId) },
+      where: { followedId: +userId },
     });
     const followingCount = await prisma.follows.count({
-      where: { followerId: parseInt(userId) },
+      where: { followerId: +userId },
     });
 
-    // 응답 데이터 생성
     const responseData = {
       ...user,
       followers: followersCount,
@@ -181,16 +162,13 @@ userRouter.get('/:userId', requireAccessToken, async (req, res, next) => {
       isFollowing: !!isFollowing,
     };
 
-    return res.status(200).json({ data: responseData });
+    return res.status(HTTP_STATUS.OK).json({ data: responseData });
   } catch (error) {
     next(error);
   }
 });
 
-
-
-
-
+/** 유저 패스워드 변경 **/
 userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
   try {
     const { userId } = req.user;
@@ -198,7 +176,7 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
     if (!password || !newPassword) {
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
-        .json({ error: '기존 비밀번호와 새 비밀번호를 모두 입력해주세요.' });
+        .json({ error: MESSAGES.PROFILE.PASSWORD.INPUT_ERROR });
     }
 
     if (newPassword.length < 6) {
@@ -218,13 +196,12 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
       },
     });
 
-    const isPasswordValid = await bcrypt.compare(password, user.password);
+    const isPasswordValid = bcrypt.compareSync(password, user.password);
     if (!isPasswordValid) {
       return res
         .status(HTTP_STATUS.UNAUTHORIZED)
         .json({
-          status: HTTP_STATUS.UNAUTHORIZED,
-          error: '기존 비밀번호가 일치하지 않습니다.',
+          error: MESSAGES.PROFILE.PASSWORD.NOT_MATCHED,
         });
     }
 
@@ -238,7 +215,7 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
       data: { password: hashedNewPassword },
     });
     return res.status(HTTP_STATUS.OK).json({
-      message: '새 비밀번호 설정이 완료되었습니다.',
+      message: MESSAGES.PROFILE.PASSWORD.NEW_PASSWORD_CHANGE_SUCCESS ,
       userDetails: {
         userId: updatedUser.id,
         nickname: updatedUser.nickname,
@@ -246,8 +223,8 @@ userRouter.patch('/password', requireAccessToken, async (req, res, next) => {
         updatedAt: updatedUser.updatedAt,
       },
     });
-  } catch (err) {
-    next(err);
+  } catch (error) {
+    next(error);
   }
 });
 
@@ -258,8 +235,8 @@ userRouter.post(
   async (req, res) => {
     if (!req.file) {
       return res
-        .status(400)
-        .json({ message: '이미지를 업로드하지 않았습니다.' });
+        .status(HTTP_STATUS.BAD_REQUEST)
+        .json({ message: MESSAGES.PROFILE.IMAGE.NOT_UPLOAD });
     }
     const userId = req.user.userId;
     const fileUrl = req.file.location;
@@ -268,15 +245,15 @@ userRouter.post(
       data: { imageUrl: fileUrl },
     });
     res
-      .status(200)
+      .status(HTTP_STATUS.OK)
       .json({
-        message: '프로필이 업로드 되었습니다.',
+        message: MESSAGES.PROFILE.INFORMATION.UPLOAD_SUCCESS,
         data: updatedUser.imageUrl,
       });
   }
 );
 
-//팔로우
+/** 팔로우 생성 기능 **/
 userRouter.post(
   '/follows/:userId',
   requireAccessToken,
@@ -297,12 +274,11 @@ userRouter.post(
             followedId: Number(userId),
           },
         });
-        //await user.addFollowing(parseInt(req.params.userId, 10))
         return res
           .status(HTTP_STATUS.CREATED)
           .json({
             status: HTTP_STATUS.CREATED,
-            message: '팔로우 성공했습니다.',
+            message: MESSAGES.PROFILE.FOLLOW.SUCCESS,
           });
       } else {
         res
@@ -314,7 +290,7 @@ userRouter.post(
     }
   }
 );
-//언팔로우
+/** 팔로우 취소 기능 **/
 userRouter.patch(
   '/follows/:userId',
   requireAccessToken,
@@ -332,12 +308,12 @@ userRouter.patch(
             followedId: Number(userId),
           },
         });
-        //await user.removeFollower(parseInt(req.params.userId))
+
         return res
           .status(HTTP_STATUS.OK)
           .json({
             status: HTTP_STATUS.CREATED,
-            message: '팔로우 취소했습니다.',
+            message: MESSAGES.PROFILE.FOLLOW.CANCEL,
           });
       } else {
         res
@@ -349,21 +325,20 @@ userRouter.patch(
     }
   }
 );
-//팔로우한 사람 게시글 조회
+
+/** 팔로우 목록 조회 **/
 userRouter.get('/follows/:id', requireAccessToken, async (req, res, next) => {
   try {
     const { id: userId } = req.params;
-
     if (!userId) {
       return res
         .status(HTTP_STATUS.NOT_FOUND)
         .json({
           status: HTTP_STATUS.NOT_FOUND,
-          message: '사용자를 찾을 수 없습니다',
+          message:MESSAGES.PROFILE.FOLLOW.NOT_FOUND_USER,
         });
     }
 
-    // const {id: followerId} = req.params;
     const following = await prisma.follows.findMany({
       where: { followerId: +userId },
       select: { followedId: true },
@@ -383,7 +358,7 @@ userRouter.get('/follows/:id', requireAccessToken, async (req, res, next) => {
         user: true,
       },
     });
-    res.json(posts);
+    res.status(HTTP_STATUS.OK).json({ data: posts});
   } catch (err) {
     next();
   }
