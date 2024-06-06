@@ -573,6 +573,11 @@ postsRouter.delete(
           .status(HTTP_STATUS.FORBIDDEN)
           .json({ message: MESSAGES.POST_MESSAGES.COMMENT_NOT_DELETE});
       }
+      await prisma.commentLike.deleteMany({
+        where: {
+          commentId: +commentId
+        }
+      });
       const deleteComment = await prisma.comment.delete({
         where: {
           commentId: +commentId,

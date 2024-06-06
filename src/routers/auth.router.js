@@ -29,7 +29,7 @@ authRouter.get(
     const accessToken = req.user.data.token.accessToken;
     const refreshToken = req.user.data.token.refreshToken;
     res.redirect(
-      `http://127.0.0.1:3000/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
+      `${ENV_KEY.NABER_URL}/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
     );
   }
 );
@@ -51,7 +51,7 @@ authRouter.get(
     const accessToken = req.user.data.token.accessToken;
     const refreshToken = req.user.data.token.refreshToken;
     res.redirect(
-      `http://127.0.0.1:3000/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
+      `${ENV_KEY.KAKAO_URL}/callback?accessToken=${accessToken}&refreshToken=${refreshToken}`
     );
   }
 );
