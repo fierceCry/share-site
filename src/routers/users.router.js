@@ -233,6 +233,7 @@ userRouter.post(
   requireAccessToken,
   profileUpload.single('imageUrl'),
   async (req, res) => {
+    console.log(req.file)
     if (!req.file) {
       return res
         .status(HTTP_STATUS.BAD_REQUEST)
