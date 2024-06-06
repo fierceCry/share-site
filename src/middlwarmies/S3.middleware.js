@@ -26,7 +26,7 @@ const profileUpload = multer({
     acl: 'public-read',
   }),
   limits: {
-    fileSize: 150 * 1024 * 1024
+    fileSize: 1000 * 1024 * 1024
   },
 });
 
@@ -44,7 +44,7 @@ const postUpload = multer({
     acl: 'public-read',
   }),
   limits: {
-    fileSize: 450 * 1024 * 1024,
+    fileSize: 1000 * 1024 * 1024,
   },
 });
 
