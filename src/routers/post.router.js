@@ -118,14 +118,28 @@ postsRouter.get('/posts', requireAccessToken, async (req, res, next) => {
 
 
 /** 게시글 상세 조회 **/
-postsRouter.get('/:id', async (req, res, next) => {
+postsRouter.get('/:id', requireAccessToken, async (req, res, next) => {
   try {
     const { id: postId } = req.params;
+    const userId = req.user.userId; // 인증된 사용자의 ID를 가져옵니다. (예: JWT 토큰에서 추출된 userId)
+    
+    // 게시글의 좋아요 수를 가져옵니다.
     const likeCount = await prisma.like.count({
       where: {
         postId: +postId,
       },
     });
+
+    // 사용자가 게시글에 좋아요를 눌렀는지 여부를 확인합니다.
+    const userLike = await prisma.like.findFirst({
+      where: {
+        postId: +postId,
+        userId: +userId,
+      },
+    });
+    const isLikedByUser = Boolean(userLike);
+
+    // 게시글의 데이터를 가져옵니다.
     let data = await prisma.post.findUnique({
       where: { postId: +postId },
       include: {
@@ -146,6 +160,7 @@ postsRouter.get('/:id', async (req, res, next) => {
         },
       },
     });
+
     if (!data) {
       return res.status(HTTP_STATUS.NOT_FOUND).json({
         status: HTTP_STATUS.NOT_FOUND,
@@ -153,13 +168,13 @@ postsRouter.get('/:id', async (req, res, next) => {
         data: data,
       });
     }
-    // promise.all을 사용하여 모든 비동기작업이 완료될 때까지 기다렸다가 map메서드 실행
+
+    // 댓글의 좋아요 수를 계산하여 댓글 정보에 추가합니다.
     let comments = await Promise.all(
       data.Comment.map(async (comment) => {
-        const { commentId } = req.params;
-        const commentLikeCount = await prisma.like.count({
+        const commentLikeCount = await prisma.commentLike.count({
           where: {
-            commentId: commentId,
+            commentId: comment.commentId,
           },
         });
         return {
@@ -170,27 +185,27 @@ postsRouter.get('/:id', async (req, res, next) => {
           createdAt: comment.createdAt,
           updatedAt: comment.updatedAt,
           nickname: comment.user.nickname, // 댓글 작성자의 닉네임을 새로운 필드로 추가합니다.
-          likes: commentLikeCount, //댓글 좋아요 수
+          likes: commentLikeCount, // 댓글 좋아요 수
         };
       })
     );
 
+    // 최종 응답 데이터를 구성합니다.
     data = {
       postId: data.postId,
       title: data.title,
       userId: data.userId,
       content: data.content,
       nickname: data.user.nickname,
-      nickname: data.user.nickname,
       regionId: data.regionId,
       imageUrl: data.imageUrl,
       createdAt: data.createdAt,
       updatedAt: data.updatedAt,
-      comment: comments,
-      likes: likeCount,
-      comment: comments,
+      comments: comments, // 'comments'로 키 이름 수정
+      likes: likeCount, // 게시글 좋아요 수 추가
+      isLikedByUser, // 사용자가 좋아요를 눌렀는지 여부 추가
     };
-
+    console.log(data)
     return res.status(HTTP_STATUS.OK).json({
       status: HTTP_STATUS.OK,
       message: POST_MESSAGES.POST_DETAIL,
@@ -201,13 +216,14 @@ postsRouter.get('/:id', async (req, res, next) => {
   }
 });
 
+
 /** 게시글 수정 **/
-postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
+postsRouter.patch('/:postId', requireAccessToken, upload.single('image'), async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { postId } = req.params;
     const { title, content, regionId, imageUrl } = req.body;
-
+    console.log(imageUrl)
     const idcheck = await prisma.post.findUnique({
       where: {
         postId: +postId,
@@ -232,6 +248,7 @@ postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
         .status(HTTP_STATUS.BAD_REQUEST)
         .json({ message: '접근 권한이 없습니다.' });
     }
+    console.log(imageUrl)
     const updatedPost = await prisma.post.update({
       where: { postId: +postId },
       data: {
@@ -483,15 +500,16 @@ postsRouter.get(
   async (req, res, next) => {
     try {
       const { postId } = req.params;
-
+      const { userId } = req.user;
       const postData = await prisma.post.findFirst({
         where: { postId: +postId },
       });
+
       if (!postData) {
         return res.status(400).json({ message: '게시글을 찾을 수 없습니다.' });
       }
 
-      const commentData = await prisma.comment.findMany({
+      const commentsWithLikes = await prisma.comment.findMany({
         where: {
           postId: +postId,
         },
@@ -501,9 +519,16 @@ postsRouter.get(
               nickname: true,
             },
           },
+          commentLike: true, // 모든 좋아요를 포함
         },
       });
-      const data = commentData.map((comment) => {
+
+      const data = commentsWithLikes.map((comment) => {
+        const likeCount = comment.commentLike.length; // 좋아요 개수 계산
+        const isLikedByUser = comment.commentLike.some(
+          (like) => like.userId === +userId
+        ); // 사용자가 좋아요를 눌렀는지 확인
+
         return {
           commentId: comment.commentId,
           userId: comment.userId,
@@ -512,14 +537,18 @@ postsRouter.get(
           comment: comment.comment,
           createdAt: comment.createdAt,
           updatedAt: comment.updatedAt,
+          likeCount, // 좋아요 개수 추가
+          isLikedByUser, // 사용자가 좋아요를 눌렀는지 여부 추가
         };
       });
-      return res.status(200).json({ data: data });
+
+      return res.status(200).json({ data : data });
     } catch (error) {
       next(error);
     }
   }
 );
+
 
 /** 게시글에 댓글 수정 **/
 postsRouter.patch(
@@ -636,7 +665,7 @@ postsRouter.get(
       const { categoryId } = req.params;
       const limit = parseInt(req.query.limit) || 12;  // 기본값 10
       const offset = parseInt(req.query.offset) || 0; // 기본값 0
-
+      console.log(req.user)
       const data = await prisma.post.findMany({
         where: {
           regionId: +categoryId,
