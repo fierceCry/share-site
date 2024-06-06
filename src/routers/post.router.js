@@ -218,12 +218,12 @@ postsRouter.get('/:id', requireAccessToken, async (req, res, next) => {
 
 
 /** 게시글 수정 **/
-postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
+postsRouter.patch('/:postId', requireAccessToken, upload.single('image'), async (req, res, next) => {
   try {
     const { userId } = req.user;
     const { postId } = req.params;
     const { title, content, regionId, imageUrl } = req.body;
-
+    console.log(imageUrl)
     const idcheck = await prisma.post.findUnique({
       where: {
         postId: +postId,
@@ -248,6 +248,7 @@ postsRouter.patch('/:postId', requireAccessToken, async (req, res, next) => {
         .status(HTTP_STATUS.BAD_REQUEST)
         .json({ message: '접근 권한이 없습니다.' });
     }
+    console.log(imageUrl)
     const updatedPost = await prisma.post.update({
       where: { postId: +postId },
       data: {
@@ -664,7 +665,7 @@ postsRouter.get(
       const { categoryId } = req.params;
       const limit = parseInt(req.query.limit) || 12;  // 기본값 10
       const offset = parseInt(req.query.offset) || 0; // 기본값 0
-
+      console.log(req.user)
       const data = await prisma.post.findMany({
         where: {
           regionId: +categoryId,
