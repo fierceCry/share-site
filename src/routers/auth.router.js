@@ -135,7 +135,7 @@ authRouter.post('/sign-in', signinValidator, async (req, res, next) => {
       data: { accessToken },
     });
   } catch (error) {
-    next(err);
+    next(error);
   }
 });
 

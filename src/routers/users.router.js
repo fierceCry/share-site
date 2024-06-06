@@ -6,7 +6,6 @@ import { MESSAGES } from '../constants/message.constant.js';
 import { HTTP_STATUS } from '../constants/http-status.constant.js';
 import { authConstant } from '../constants/auth.constant.js';
 import { profileUpload } from '../middlwarmies/S3.middleware.js';
-import { Prisma } from '@prisma/client/extension';
 
 const userRouter = express.Router();
 
