@@ -3,7 +3,7 @@
 
 # 팀 소개
 > 팀명: 만규와 아이들 
-
+> 
 > 인원: 팀장 김만규, 팀원 이길현, 박서진, 이민준, 이성운
 
 ### 역할 분담
@@ -57,17 +57,22 @@
     yarn install
     ```
 
-4. 임시 데이터를 생성합니다.
-    ```bash
-    yarn seed
-    ```
-5. 환경 변수를 설정합니다. `.env` 파일을 생성하고 다음과 같은 설정을 추가합니다:
+4. 환경 변수를 설정합니다. `.env` 파일을 생성하고 다음과 같은 설정을 추가합니다:
     ```
     PORT=3000
     DATABASE_URL="mysql://<username>:<password>@localhost:3306/myDatabase"
     ```
 
-6. 애플리케이션을 실행합니다:
+5. prisma Database 생성
+    ```bash
+    npx prisma db push
+    ```
+6. 임시 데이터를 생성합니다.
+    ```bash
+    yarn seed
+    ```
+
+7. 애플리케이션을 실행합니다:
 
     ```bash
     yarn start (배포용)
@@ -82,3 +87,6 @@
 
 ## ERD
 [<img src="https://tenereteam.s3.us-west-1.amazonaws.com/draw-sql.webp?v=1708250048" alt="DrawSQL 로고" width="24"> DrawSQL 바로가기](https://drawsql.app/teams/kimmangyu/diagrams/-2)
+
+## 프론트 프로젝트 링크
+[<img src="https://github.githubassets.com/images/modules/logos_page/GitHub-Mark.png" alt="DrawSQL 로고" width="24"> 프론트 github 바로가기](https://github.com/fierceCry/share-site-FrontEnd.git)
